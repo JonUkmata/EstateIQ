@@ -1,0 +1,46 @@
+1. Kontrollo a ekziston Docker
+Në PowerShell shkruaj:
+docker --version
+Nëse del diçka si version, vazhdo.
+Nëse del që docker nuk njihet, problemi është te instalimi i Docker.
+2. Kontrollo a është Docker Desktop i hapur
+Shkruaj:
+docker ps
+
+
+Nëse del listë bosh ose container-a, Docker po punon.
+
+
+Nëse del gabim si cannot connect to the Docker daemon, atëherë hape Docker Desktop dhe prit derisa të jetë running.
+
+
+3. Provo komandën sërish
+Kur docker ps punon, provo:
+docker run -d --name redis -p 6379:6379 redis
+4. Nëse thotë që emri redis ekziston
+Atëherë ke një container të vjetër. Bëj:
+docker rm -f redis
+pastaj:
+docker run -d --name redis -p 6379:6379 redis
+5. Nëse do tërheqjen e image-it veçmas
+Ndonjëherë ndihmon ta bësh me dy hapa:
+docker pull redisdocker run -d --name redis -p 6379:6379 redis
+6. Kontrollo a u nis
+Shkruaj:
+docker ps
+Duhet të shohësh një rresht me emrin redis.
+7. Testo Redis
+Mënyra më e thjeshtë:
+docker exec -it redis redis-cli ping
+Nëse gjithçka është OK, duhet të kthejë:
+PONG
+Pastaj testo key-n:
+docker exec -it redis redis-cli
+Brenda CLI shkruaj:
+SET test_key helloGET test_key
+Duhet të shohësh:
+OK"hello"
+8. Nëse prap dështon
+Atëherë ma dërgo tekstin e saktë të gabimit që po del pas njërës nga këto komanda:
+docker --versiondocker psdocker run -d --name redis -p 6379:6379 redis
+Jo screenshot të përgjithshëm — vetëm error-in exact. Kështu ta jap fix-in direkt.
