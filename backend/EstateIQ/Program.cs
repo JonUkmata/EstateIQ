@@ -1,9 +1,20 @@
+using EstateIQ.Data;
+using Microsoft.EntityFrameworkCore;
+
+EnvironmentFileLoader.Load(Directory.GetCurrentDirectory());
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found. Set ConnectionStrings__DefaultConnection in backend/EstateIQ/.env or as an environment variable.");
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -25,6 +36,15 @@ if (!app.Environment.IsDevelopment())
 
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
+
+app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
+{
+    var canConnect = await dbContext.Database.CanConnectAsync();
+    return canConnect
+        ? Results.Ok("Database connection successful")
+        : Results.Problem("Database connection failed", statusCode: StatusCodes.Status503ServiceUnavailable);
+})
+.WithName("GetDatabaseConnectionTest");
 
 var summaries = new[]
 {
