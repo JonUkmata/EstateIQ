@@ -1,0 +1,6 @@
+@EstateIQ_HostAddress = http://localhost:5222
+
+GET {{EstateIQ_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
