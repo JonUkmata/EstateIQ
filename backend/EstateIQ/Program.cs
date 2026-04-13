@@ -1,5 +1,8 @@
 using EstateIQ.Data;
+using EstateIQ.Interfaces;
+using EstateIQ.Services;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 EnvironmentFileLoader.Load(Directory.GetCurrentDirectory());
 
@@ -11,15 +14,28 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' was not found. Set ConnectionStrings__DefaultConnection in backend/EstateIQ/.env or as an environment variable.");
 
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
+    ?? throw new InvalidOperationException(
+        "Redis connection string was not found. Set Redis__ConnectionString in backend/EstateIQ/.env or as an environment variable.");
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+{
+    var options = ConfigurationOptions.Parse(redisConnectionString);
+    options.AbortOnConnectFail = false;
+
+    return ConnectionMultiplexer.Connect(options);
+});
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -34,6 +50,18 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+try
+{
+    var redisMultiplexer = app.Services.GetRequiredService<IConnectionMultiplexer>();
+    var redisPing = await redisMultiplexer.GetDatabase().PingAsync();
+    startupLogger.LogInformation("Redis connection successful. Ping: {RedisPingMs} ms", redisPing.TotalMilliseconds);
+}
+catch (Exception exception)
+{
+    startupLogger.LogError(exception, "Redis connection failed during startup.");
+    throw;
+}
+
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
 
@@ -45,6 +73,33 @@ app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
         : Results.Problem("Database connection failed", statusCode: StatusCodes.Status503ServiceUnavailable);
 })
 .WithName("GetDatabaseConnectionTest");
+
+app.MapGet("/api/test/redis", async (IRedisCacheService redisCacheService, ILoggerFactory loggerFactory) =>
+{
+    const string key = "test_key";
+    const string expectedValue = "hello";
+
+    var logger = loggerFactory.CreateLogger("RedisTest");
+
+    await redisCacheService.SetStringAsync(key, expectedValue);
+    var storedValue = await redisCacheService.GetStringAsync(key);
+
+    if (!string.Equals(storedValue, expectedValue, StringComparison.Ordinal))
+    {
+        logger.LogError("Redis set/get verification failed for key {RedisKey}. Expected {ExpectedValue} but got {StoredValue}.", key, expectedValue, storedValue);
+        return Results.Problem("Redis set/get verification failed", statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    logger.LogInformation("Redis set/get verification succeeded for key {RedisKey}.", key);
+
+    return Results.Ok(new
+    {
+        key,
+        value = storedValue,
+        success = true
+    });
+})
+.WithName("GetRedisConnectionTest");
 
 var summaries = new[]
 {
