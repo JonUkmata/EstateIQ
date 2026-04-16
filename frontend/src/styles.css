@@ -156,6 +156,11 @@ a {
   width: 100%;
 }
 
+.content-stack {
+  display: grid;
+  gap: 1.1rem;
+}
+
 .hero-card,
 .login-card {
   display: grid;
@@ -199,6 +204,68 @@ a {
 
 .panel-list li + li {
   margin-top: 0.75rem;
+}
+
+.response-card {
+  padding: 1.35rem;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
+}
+
+.response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.response-title {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #163126;
+}
+
+.response-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.response-badge-loading {
+  background: rgba(241, 224, 178, 0.6);
+  color: #74591f;
+}
+
+.response-badge-success {
+  background: rgba(201, 233, 209, 0.85);
+  color: #1c5b34;
+}
+
+.response-badge-error {
+  background: rgba(239, 206, 206, 0.88);
+  color: #8f2d2d;
+}
+
+.response-output {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(24, 53, 41, 0.1);
+  background: rgba(245, 249, 243, 0.88);
+  color: #214233;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .login-shell {
@@ -258,5 +325,10 @@ a {
   .hero-copy h1,
   .login-card h1 {
     max-width: none;
+  }
+
+  .response-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
