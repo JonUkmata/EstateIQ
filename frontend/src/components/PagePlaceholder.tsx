@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react'
+
 type PagePlaceholderProps = {
   badge: string
   title: string
   description: string
   highlights: string[]
+  children?: ReactNode
 }
 
 export default function PagePlaceholder({
@@ -10,6 +13,7 @@ export default function PagePlaceholder({
   title,
   description,
   highlights,
+  children,
 }: PagePlaceholderProps) {
   return (
     <section className="content-stack">
@@ -29,6 +33,8 @@ export default function PagePlaceholder({
           </ul>
         </aside>
       </article>
+
+      {children}
     </section>
   )
 }
