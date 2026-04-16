@@ -1,0 +1,150 @@
+:root {
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  color: #163126;
+  background:
+    radial-gradient(circle at top, rgba(189, 225, 201, 0.9), transparent 32%),
+    linear-gradient(135deg, #f5f0e6 0%, #fbfaf6 45%, #eef3ea 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.page-shell {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 1.5rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 22px 45px rgba(57, 86, 68, 0.14);
+}
+
+.eyebrow,
+.panel-label {
+  display: inline-block;
+  margin-bottom: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  color: #4a7861;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  max-width: 12ch;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.5rem, 6vw, 4.6rem);
+  line-height: 0.95;
+  color: #11251c;
+}
+
+.lead {
+  max-width: 60ch;
+  margin: 1.5rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #355446;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 2rem;
+}
+
+.status-pill,
+.hero-panel,
+.pillar-card {
+  border: 1px solid rgba(33, 66, 51, 0.12);
+  border-radius: 22px;
+  background: rgba(248, 251, 246, 0.9);
+}
+
+.status-pill {
+  min-width: 180px;
+  padding: 1rem 1.1rem;
+}
+
+.status-pill strong,
+.pillar-card h2 {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #183529;
+}
+
+.status-pill span,
+.pillar-card p,
+.hero-panel li {
+  color: #486558;
+  line-height: 1.6;
+}
+
+.hero-panel {
+  padding: 1.35rem;
+  align-self: start;
+}
+
+.hero-panel ol {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.hero-panel li + li {
+  margin-top: 0.8rem;
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pillar-card {
+  padding: 1.4rem;
+  min-height: 170px;
+}
+
+.pillar-card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.pillar-card p {
+  margin: 0;
+}
+
+@media (max-width: 820px) {
+  .hero-card,
+  .pillars-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy h1 {
+    max-width: none;
+  }
+}
