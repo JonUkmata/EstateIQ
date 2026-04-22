@@ -1,5 +1,6 @@
 using EstateIQ.Data;
 using EstateIQ.Interfaces;
+using EstateIQ.Repositories;
 using EstateIQ.Services;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -22,6 +23,7 @@ var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);
