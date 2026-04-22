@@ -58,8 +58,7 @@ try
 }
 catch (Exception exception)
 {
-    startupLogger.LogError(exception, "Redis connection failed during startup.");
-    throw;
+    startupLogger.LogWarning(exception, "Redis connection failed during startup. The API will continue to run, but Redis-backed operations may fail until Redis is available.");
 }
 
 app.MapGet("/api/test", () => "API is running")
