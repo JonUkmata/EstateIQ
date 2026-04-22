@@ -1,5 +1,7 @@
+using AutoMapper;
 using EstateIQ.Data;
 using EstateIQ.Interfaces;
+using EstateIQ.Mappings;
 using EstateIQ.Repositories;
 using EstateIQ.Services;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +25,14 @@ var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
+builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
+builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
+builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
+builder.Services.AddScoped<IAgentRepository, AgentRepository>();
+builder.Services.AddScoped<IAgentCompanyRepository, AgentCompanyRepository>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);
