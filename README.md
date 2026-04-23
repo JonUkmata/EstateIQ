@@ -40,3 +40,32 @@ A dedicated module will be developed to integrate Machine Learning models for pr
 - Integration with the main application
 
 *Details and implementation roadmap will be added in future releases.*
+
+## API Notes
+
+### Company Dropdown Endpoint
+
+`GET /api/companies`
+
+Query parameters:
+- `includeInactive` optional boolean, defaults to `false`
+- `search` optional string filter applied to company name
+
+Example response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "ABC Real Estate",
+    "city": "Prishtinë",
+    "isActive": true
+  }
+]
+```
+
+Behavior:
+- Returns `200 OK` with an array, including `[]` when no companies match
+- Returns only active companies by default
+- Sorts results alphabetically by company name
+- Returns a lightweight payload intended for frontend dropdowns
