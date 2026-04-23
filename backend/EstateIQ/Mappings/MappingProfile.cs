@@ -5,7 +5,7 @@ using EstateIQ.Models;
 namespace EstateIQ.Mappings;
 
 /// <summary>
-/// Defines AutoMapper mappings for the property module.
+/// Defines AutoMapper mappings for API DTOs.
 /// </summary>
 public class MappingProfile : Profile
 {
@@ -32,6 +32,7 @@ public class MappingProfile : Profile
         CreateMap<PropertyType, PropertyTypeDto>();
         CreateMap<PropertyStatus, PropertyStatusDto>();
         CreateMap<Company, CompanyDto>();
+        CreateMap<Company, CompanyDropdownDto>();
         CreateMap<Agent, AgentDto>();
     }
 }

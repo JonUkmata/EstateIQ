@@ -1,3 +1,4 @@
+using System.Reflection;
 using AutoMapper;
 using EstateIQ.Data;
 using EstateIQ.Interfaces;
@@ -13,24 +14,48 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' was not found. Set ConnectionStrings__DefaultConnection in backend/EstateIQ/.env or as an environment variable.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
-    ?? throw new InvalidOperationException(
-        "Redis connection string was not found. Set Redis__ConnectionString in backend/EstateIQ/.env or as an environment variable.");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    if (builder.Environment.IsEnvironment("Testing"))
+    {
+        connectionString = "Server=(localdb)\\mssqllocaldb;Database=EstateIQTests;Trusted_Connection=True;TrustServerCertificate=True";
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Connection string 'DefaultConnection' was not found. Set ConnectionStrings__DefaultConnection in backend/EstateIQ/.env or as an environment variable.");
+    }
+}
+
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    if (builder.Environment.IsEnvironment("Testing"))
+    {
+        redisConnectionString = "localhost:6379";
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Redis connection string was not found. Set Redis__ConnectionString in backend/EstateIQ/.env or as an environment variable.");
+    }
+}
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddControllers();
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
 builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentCompanyRepository, AgentCompanyRepository>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
@@ -43,7 +68,16 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFileName = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlFilePath = Path.Combine(AppContext.BaseDirectory, xmlFileName);
+
+    if (File.Exists(xmlFilePath))
+    {
+        options.IncludeXmlComments(xmlFilePath, includeControllerXmlComments: true);
+    }
+});
 
 var app = builder.Build();
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
@@ -61,16 +95,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-try
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var redisMultiplexer = app.Services.GetRequiredService<IConnectionMultiplexer>();
-    var redisPing = await redisMultiplexer.GetDatabase().PingAsync();
-    startupLogger.LogInformation("Redis connection successful. Ping: {RedisPingMs} ms", redisPing.TotalMilliseconds);
+    try
+    {
+        var redisMultiplexer = app.Services.GetRequiredService<IConnectionMultiplexer>();
+        var redisPing = await redisMultiplexer.GetDatabase().PingAsync();
+        startupLogger.LogInformation("Redis connection successful. Ping: {RedisPingMs} ms", redisPing.TotalMilliseconds);
+    }
+    catch (Exception exception)
+    {
+        startupLogger.LogWarning(exception, "Redis connection failed during startup. The API will continue to run, but Redis-backed operations may fail until Redis is available.");
+    }
 }
-catch (Exception exception)
-{
-    startupLogger.LogWarning(exception, "Redis connection failed during startup. The API will continue to run, but Redis-backed operations may fail until Redis is available.");
-}
+
+app.MapControllers();
 
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
@@ -136,3 +175,5 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+public partial class Program;
