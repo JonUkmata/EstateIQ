@@ -32,6 +32,8 @@ public class PropertiesControllerTests
         Assert.Single(result!);
         Assert.Equal("Modern Apartment", result[0].Title);
         Assert.Equal("Apartment", result[0].PropertyType.Name);
+        Assert.Equal(41.3275m, result[0].Latitude);
+        Assert.Equal(19.8187m, result[0].Longitude);
     }
 
     [Fact]
@@ -49,6 +51,8 @@ public class PropertiesControllerTests
         Assert.NotNull(result);
         Assert.Equal(propertyId, result!.Id);
         Assert.Equal("EstateIQ", result.Company.Name);
+        Assert.Equal(41.3275m, result.Latitude);
+        Assert.Equal(19.8187m, result.Longitude);
     }
 
     [Fact]
@@ -79,6 +83,8 @@ public class PropertiesControllerTests
         Assert.NotNull(result);
         Assert.Equal("Modern Apartment", result!.Title);
         Assert.Equal("For Sale", result.PropertyStatus.Name);
+        Assert.Equal(41.3275m, result.Latitude);
+        Assert.Equal(19.8187m, result.Longitude);
     }
 
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
