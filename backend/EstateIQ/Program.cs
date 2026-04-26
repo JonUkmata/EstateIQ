@@ -59,6 +59,7 @@ builder.Services.AddScoped<IPropertyStatusService, PropertyStatusService>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
+builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IAgentCompanyRepository, AgentCompanyRepository>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
@@ -102,6 +103,7 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await PropertyTypeSeeder.SeedRequiredPropertyTypesAsync(dbContext);
     await PropertyStatusSeeder.SeedRequiredPropertyStatusesAsync(dbContext);
+    await CompanySeeder.SeedRequiredCompaniesAsync(dbContext);
     await AgentCompanySeeder.SeedRequiredAgentsAndRelationshipsAsync(dbContext);
 }
 
