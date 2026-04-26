@@ -13,6 +13,41 @@ public class PropertyStatusRepository(AppDbContext dbContext) : IPropertyStatusR
     private readonly AppDbContext _dbContext = dbContext;
 
     /// <summary>
+    /// Gets all active property statuses sorted by name.
+    /// </summary>
+    public async Task<IEnumerable<PropertyStatus>> GetAllActiveAsync()
+    {
+        return await _dbContext.PropertyStatuses
+            .AsNoTracking()
+            .Where(status => status.IsActive)
+            .OrderBy(status => status.Name)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Gets all property statuses sorted by name.
+    /// </summary>
+    public async Task<IEnumerable<PropertyStatus>> GetAllAsync()
+    {
+        return await _dbContext.PropertyStatuses
+            .AsNoTracking()
+            .OrderBy(status => status.Name)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Searches property statuses by name and returns results sorted by name.
+    /// </summary>
+    public async Task<IEnumerable<PropertyStatus>> SearchByNameAsync(string searchTerm)
+    {
+        return await _dbContext.PropertyStatuses
+            .AsNoTracking()
+            .Where(status => status.Name.Contains(searchTerm))
+            .OrderBy(status => status.Name)
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// Checks whether a property status exists.
     /// </summary>
     public Task<bool> ExistsAsync(int id)

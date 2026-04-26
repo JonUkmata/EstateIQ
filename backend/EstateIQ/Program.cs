@@ -55,6 +55,7 @@ builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
 builder.Services.AddScoped<IPropertyTypeService, PropertyTypeService>();
 builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
+builder.Services.AddScoped<IPropertyStatusService, PropertyStatusService>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
@@ -100,6 +101,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await PropertyTypeSeeder.SeedRequiredPropertyTypesAsync(dbContext);
+    await PropertyStatusSeeder.SeedRequiredPropertyStatusesAsync(dbContext);
 }
 
 if (!app.Environment.IsEnvironment("Testing"))
