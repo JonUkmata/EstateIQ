@@ -53,6 +53,7 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
+builder.Services.AddScoped<IPropertyTypeService, PropertyTypeService>();
 builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
@@ -93,6 +94,12 @@ if (app.Environment.IsDevelopment())
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await PropertyTypeSeeder.SeedRequiredPropertyTypesAsync(dbContext);
 }
 
 if (!app.Environment.IsEnvironment("Testing"))
