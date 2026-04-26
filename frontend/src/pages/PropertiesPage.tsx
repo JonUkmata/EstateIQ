@@ -32,6 +32,8 @@ type PropertyFormState = {
   agentId: string
   address: string
   city: string
+  latitude: string
+  longitude: string
 }
 
 type FormErrors = Partial<Record<keyof PropertyFormState, string>>
@@ -51,6 +53,8 @@ const initialFormState: PropertyFormState = {
   agentId: '',
   address: '',
   city: '',
+  latitude: '',
+  longitude: '',
 }
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -383,6 +387,34 @@ export default function PropertiesPage() {
             {formErrors.yearBuilt && <small>{formErrors.yearBuilt}</small>}
           </label>
 
+          <label className="field">
+            <span>Latitude</span>
+            <input
+              value={form.latitude}
+              onChange={(event) => updateFormField('latitude', event.target.value)}
+              min="-90"
+              max="90"
+              step="0.00000001"
+              type="number"
+              placeholder="41.3275"
+            />
+            {formErrors.latitude && <small>{formErrors.latitude}</small>}
+          </label>
+
+          <label className="field">
+            <span>Longitude</span>
+            <input
+              value={form.longitude}
+              onChange={(event) => updateFormField('longitude', event.target.value)}
+              min="-180"
+              max="180"
+              step="0.00000001"
+              type="number"
+              placeholder="19.8187"
+            />
+            {formErrors.longitude && <small>{formErrors.longitude}</small>}
+          </label>
+
           <label className="field field-wide">
             <span>Description</span>
             <textarea
@@ -477,6 +509,8 @@ function validateForm(form: PropertyFormState) {
   validateOptionalIntegerRange(form.bathrooms, 'bathrooms', 0, 50, errors)
   validateOptionalIntegerRange(form.floors, 'floors', 0, 200, errors)
   validateOptionalIntegerRange(form.yearBuilt, 'yearBuilt', 1800, new Date().getFullYear(), errors)
+  validateOptionalNumberRange(form.latitude, 'latitude', -90, 90, errors)
+  validateOptionalNumberRange(form.longitude, 'longitude', -180, 180, errors)
 
   return errors
 }
@@ -521,6 +555,24 @@ function validateOptionalIntegerRange(
   }
 }
 
+function validateOptionalNumberRange(
+  value: string,
+  field: 'latitude' | 'longitude',
+  min: number,
+  max: number,
+  errors: FormErrors,
+) {
+  if (!value) {
+    return
+  }
+
+  const parsed = Number(value)
+
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+    errors[field] = `Value must be between ${min} and ${max}.`
+  }
+}
+
 function buildPayload(form: PropertyFormState): CreatePropertyPayload {
   return {
     title: form.title.trim(),
@@ -537,6 +589,8 @@ function buildPayload(form: PropertyFormState): CreatePropertyPayload {
     agentId: Number(form.agentId),
     address: form.address.trim(),
     city: form.city.trim(),
+    latitude: toOptionalNumber(form.latitude),
+    longitude: toOptionalNumber(form.longitude),
   }
 }
 
