@@ -53,10 +53,13 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
+builder.Services.AddScoped<IPropertyTypeService, PropertyTypeService>();
 builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
+builder.Services.AddScoped<IPropertyStatusService, PropertyStatusService>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
+builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IAgentCompanyRepository, AgentCompanyRepository>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
@@ -93,6 +96,16 @@ if (app.Environment.IsDevelopment())
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await PropertyTypeSeeder.SeedRequiredPropertyTypesAsync(dbContext);
+    await PropertyStatusSeeder.SeedRequiredPropertyStatusesAsync(dbContext);
+    await CompanySeeder.SeedRequiredCompaniesAsync(dbContext);
+    await AgentCompanySeeder.SeedRequiredAgentsAndRelationshipsAsync(dbContext);
+    await PropertySeeder.SeedRequiredPropertiesAsync(dbContext);
 }
 
 if (!app.Environment.IsEnvironment("Testing"))
