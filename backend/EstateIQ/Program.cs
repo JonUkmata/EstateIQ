@@ -105,6 +105,7 @@ using (var scope = app.Services.CreateScope())
     await PropertyStatusSeeder.SeedRequiredPropertyStatusesAsync(dbContext);
     await CompanySeeder.SeedRequiredCompaniesAsync(dbContext);
     await AgentCompanySeeder.SeedRequiredAgentsAndRelationshipsAsync(dbContext);
+    await PropertySeeder.SeedRequiredPropertiesAsync(dbContext);
 }
 
 if (!app.Environment.IsEnvironment("Testing"))

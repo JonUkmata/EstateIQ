@@ -47,6 +47,20 @@ public class AgentRepository(AppDbContext dbContext) : IAgentRepository
     }
 
     /// <summary>
+    /// Gets active agents assigned to a company sorted by name.
+    /// </summary>
+    public async Task<IEnumerable<Agent>> GetActiveByCompanyAsync(int companyId)
+    {
+        return await CreateSortedQuery()
+            .Where(agent =>
+                agent.IsActive &&
+                agent.AgentCompanies.Any(agentCompany =>
+                    agentCompany.CompanyId == companyId &&
+                    agentCompany.IsActive))
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// Checks whether an agent exists.
     /// </summary>
     public Task<bool> ExistsAsync(int id)

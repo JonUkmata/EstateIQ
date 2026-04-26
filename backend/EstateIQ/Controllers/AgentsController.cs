@@ -21,6 +21,7 @@ public class AgentsController(
     /// </summary>
     /// <param name="includeInactive">When true, inactive agents are included.</param>
     /// <param name="search">Optional agent name or email search filter.</param>
+    /// <param name="companyId">Optional company filter for assigned agents.</param>
     /// <returns>A lightweight list of agents sorted by name.</returns>
     [HttpGet]
     [Produces("application/json")]
@@ -28,11 +29,12 @@ public class AgentsController(
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<AgentDto>>> GetAgents(
         [FromQuery] bool includeInactive = false,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] int? companyId = null)
     {
         try
         {
-            var agents = await _agentService.GetForDropdownAsync(includeInactive, search);
+            var agents = await _agentService.GetForDropdownAsync(includeInactive, search, companyId);
             return Ok(agents);
         }
         catch (Exception exception)

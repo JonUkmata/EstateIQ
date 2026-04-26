@@ -22,20 +22,34 @@ public class AgentService(
     /// </summary>
     public async Task<IEnumerable<AgentDto>> GetForDropdownAsync(
         bool includeInactive = false,
-        string? search = null)
+        string? search = null,
+        int? companyId = null)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(search)
             ? null
             : search.Trim();
 
         _logger.LogInformation(
-            "Fetching agents for dropdown. IncludeInactive: {IncludeInactive}, Search: {Search}",
+            "Fetching agents for dropdown. IncludeInactive: {IncludeInactive}, Search: {Search}, CompanyId: {CompanyId}",
             includeInactive,
-            normalizedSearch ?? "None");
+            normalizedSearch ?? "None",
+            companyId);
 
         IEnumerable<Agent> agents;
 
-        if (normalizedSearch is not null)
+        if (companyId is > 0)
+        {
+            agents = await _agentRepository.GetActiveByCompanyAsync(companyId.Value);
+
+            if (normalizedSearch is not null)
+            {
+                agents = agents.Where(agent =>
+                    agent.FirstName.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    agent.LastName.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    agent.Email.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+        else if (normalizedSearch is not null)
         {
             agents = await _agentRepository.SearchAsync(normalizedSearch);
 
