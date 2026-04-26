@@ -13,6 +13,7 @@ Start here when onboarding a new developer or AI assistant:
 
 - [PROJECT-OVERVIEW.md](PROJECT-OVERVIEW.md) - static project overview, stack, architecture, database schema, setup, URLs, and feature status.
 - [DEVELOPMENT-LOG.md](DEVELOPMENT-LOG.md) - completed tickets, files changed, testing status, known issues, architecture checklist, and the update template for future work.
+- [docs/README.md](docs/README.md) - docs index, supporting documents, and sprint planning notes.
 
 ## Required Tools
 

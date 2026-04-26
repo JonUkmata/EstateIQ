@@ -91,6 +91,7 @@ EstateIQ/
 │   ├── package.json
 │   └── vite.config.ts
 ├── docs/                       # Supporting SQL/schema/workflow docs
+│   └── sprints/                # Sprint summaries and planning handoff notes
 ├── PROJECT-OVERVIEW.md
 ├── DEVELOPMENT-LOG.md
 ├── README.md
@@ -246,3 +247,9 @@ Expected frontend URL:
 
 Use the repository issues, pull requests, or the team communication channel for project questions. Keep implementation decisions and ticket completion notes in `DEVELOPMENT-LOG.md`.
 
+## Sprint Notes
+
+Sprint summaries live under `docs/sprints/`:
+
+- `docs/sprints/sprint-1.md`
+- `docs/sprints/sprint-2.md`
