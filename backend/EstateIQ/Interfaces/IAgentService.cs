@@ -12,5 +12,6 @@ public interface IAgentService
     /// </summary>
     Task<IEnumerable<AgentDto>> GetForDropdownAsync(
         bool includeInactive = false,
-        string? search = null);
+        string? search = null,
+        int? companyId = null);
 }
