@@ -27,13 +27,38 @@ public class PropertiesControllerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var result = await response.Content.ReadFromJsonAsync<List<PropertyDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<PropertyDto>>();
         Assert.NotNull(result);
-        Assert.Single(result!);
-        Assert.Equal("Modern Apartment", result[0].Title);
-        Assert.Equal("Apartment", result[0].PropertyType.Name);
-        Assert.Equal(41.3275m, result[0].Latitude);
-        Assert.Equal(19.8187m, result[0].Longitude);
+        Assert.Single(result!.Items);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(10, result.PageSize);
+
+        var property = result.Items.Single();
+        Assert.Equal("Modern Apartment", property.Title);
+        Assert.Equal("Apartment", property.PropertyType.Name);
+        Assert.Equal(41.3275m, property.Latitude);
+        Assert.Equal(19.8187m, property.Longitude);
+    }
+
+    [Fact]
+    public async Task GetProperties_WithQueryParameters_ReturnsFilteredPage()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedPropertiesAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/properties?city=Tirane&propertyTypeId=1&propertyStatusId=1&minPrice=100000&maxPrice=150000&search=renovated&page=1&pageSize=1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<PropertyDto>>();
+        Assert.NotNull(result);
+        Assert.Equal(1, result!.TotalCount);
+        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(1, result.PageSize);
+        Assert.Single(result.Items);
+        Assert.Equal("Modern Apartment", result.Items.Single().Title);
     }
 
     [Fact]
@@ -168,6 +193,60 @@ public class PropertiesControllerTests
             await dbContext.SaveChangesAsync();
 
             return property.Id;
+        }
+
+        public async Task SeedPropertiesAsync()
+        {
+            await ResetDatabaseAsync();
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await SeedReferenceDataAsync(dbContext);
+
+            dbContext.Properties.AddRange(
+                new Property
+                {
+                    Title = "Modern Apartment",
+                    Description = "Freshly renovated apartment",
+                    Price = 120000m,
+                    Area = 78m,
+                    Bedrooms = 2,
+                    Bathrooms = 1,
+                    Floors = 1,
+                    YearBuilt = 2021,
+                    PropertyTypeId = 1,
+                    PropertyStatusId = 1,
+                    CompanyId = 1,
+                    AgentId = 1,
+                    Address = "Rruga e Kavajes",
+                    City = "Tirane",
+                    Latitude = 41.3275m,
+                    Longitude = 19.8187m,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Property
+                {
+                    Title = "Coastal Apartment",
+                    Description = "Sea view apartment",
+                    Price = 180000m,
+                    Area = 92m,
+                    Bedrooms = 3,
+                    Bathrooms = 2,
+                    Floors = 1,
+                    YearBuilt = 2019,
+                    PropertyTypeId = 1,
+                    PropertyStatusId = 1,
+                    CompanyId = 1,
+                    AgentId = 1,
+                    Address = "Rruga Taulantia",
+                    City = "Durres",
+                    Latitude = 41.3133m,
+                    Longitude = 19.4469m,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+            await dbContext.SaveChangesAsync();
         }
 
         private static async Task SeedReferenceDataAsync(AppDbContext dbContext)

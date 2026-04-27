@@ -1,4 +1,5 @@
 using EstateIQ.Data;
+using EstateIQ.DTOs;
 using EstateIQ.Interfaces;
 using EstateIQ.Models;
 using Microsoft.EntityFrameworkCore;
@@ -244,6 +245,42 @@ public class PropertyRepository(AppDbContext dbContext) : IPropertyRepository
     }
 
     /// <summary>
+    /// Gets filtered properties with related entities included.
+    /// </summary>
+    public async Task<(IEnumerable<Property> Items, int TotalCount)> GetFilteredAsync(PropertyQueryParameters queryParameters)
+    {
+        ArgumentNullException.ThrowIfNull(queryParameters);
+
+        if (queryParameters.Page <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(queryParameters.Page), "Page number must be greater than zero.");
+        }
+
+        if (queryParameters.PageSize <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(queryParameters.PageSize), "Page size must be greater than zero.");
+        }
+
+        if (queryParameters.MinPrice.HasValue &&
+            queryParameters.MaxPrice.HasValue &&
+            queryParameters.MinPrice.Value > queryParameters.MaxPrice.Value)
+        {
+            throw new ArgumentException("Minimum price cannot be greater than maximum price.");
+        }
+
+        var query = ApplyFilters(CreateDetailedQuery(), queryParameters)
+            .OrderBy(x => x.Id);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+            .Take(queryParameters.PageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    /// <summary>
     /// Checks whether a property exists.
     /// </summary>
     public async Task<bool> ExistsAsync(int id)
@@ -267,6 +304,45 @@ public class PropertyRepository(AppDbContext dbContext) : IPropertyRepository
             .Include(x => x.Company)
             .Include(x => x.PropertyType)
             .Include(x => x.PropertyStatus);
+    }
+
+    private static IQueryable<Property> ApplyFilters(IQueryable<Property> query, PropertyQueryParameters queryParameters)
+    {
+        if (!string.IsNullOrWhiteSpace(queryParameters.City))
+        {
+            var city = queryParameters.City.Trim().ToLower();
+            query = query.Where(x => x.City.ToLower() == city);
+        }
+
+        if (queryParameters.PropertyTypeId.HasValue)
+        {
+            query = query.Where(x => x.PropertyTypeId == queryParameters.PropertyTypeId.Value);
+        }
+
+        if (queryParameters.PropertyStatusId.HasValue)
+        {
+            query = query.Where(x => x.PropertyStatusId == queryParameters.PropertyStatusId.Value);
+        }
+
+        if (queryParameters.MinPrice.HasValue)
+        {
+            query = query.Where(x => x.Price >= queryParameters.MinPrice.Value);
+        }
+
+        if (queryParameters.MaxPrice.HasValue)
+        {
+            query = query.Where(x => x.Price <= queryParameters.MaxPrice.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.Search))
+        {
+            var searchTerm = queryParameters.Search.Trim().ToLower();
+            query = query.Where(x =>
+                x.Title.ToLower().Contains(searchTerm) ||
+                (x.Description != null && x.Description.ToLower().Contains(searchTerm)));
+        }
+
+        return query;
     }
 
     private static IQueryable<Property> ApplySorting(IQueryable<Property> query, string? sortBy, bool ascending)
