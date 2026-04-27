@@ -302,6 +302,61 @@ a {
   box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
 }
 
+.search-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1.1rem 1.35rem;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
+}
+
+.search-panel-copy {
+  min-width: 0;
+}
+
+.search-panel-copy h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #163126;
+}
+
+.search-field {
+  display: grid;
+  width: 100%;
+  gap: 0.42rem;
+}
+
+.search-field span {
+  color: #38584a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.search-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.78rem 0.85rem;
+  border: 1px solid rgba(22, 49, 38, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #163126;
+  font: inherit;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.search-field input:focus {
+  border-color: rgba(41, 103, 73, 0.58);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(41, 103, 73, 0.12);
+}
+
 .form-panel {
   padding: 1.35rem;
   border: 1px solid rgba(22, 49, 38, 0.12);
@@ -567,6 +622,18 @@ a {
 
   .property-form {
     grid-template-columns: 1fr;
+  }
+
+  .search-panel {
+    gap: 0.65rem;
+  }
+
+  .search-panel-copy {
+    min-width: 0;
+  }
+
+  .search-field {
+    width: 100%;
   }
 
   .properties-table,

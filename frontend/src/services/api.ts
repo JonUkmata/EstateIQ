@@ -80,6 +80,10 @@ type PagedResult<T> = {
   totalPages: number
 }
 
+type PropertyQuery = {
+  search?: string
+}
+
 export async function getApiTestMessage(signal?: AbortSignal) {
   const response = await fetch(buildApiUrl('/api/test'), {
     headers: {
@@ -95,8 +99,16 @@ export async function getApiTestMessage(signal?: AbortSignal) {
   return response.text()
 }
 
-export async function getProperties(signal?: AbortSignal) {
-  const response = await fetch(buildApiUrl('/api/properties'), {
+export async function getProperties(signal?: AbortSignal, query?: PropertyQuery) {
+  const parameters = new URLSearchParams()
+  const search = query?.search?.trim()
+
+  if (search) {
+    parameters.set('search', search)
+  }
+
+  const queryString = parameters.toString()
+  const response = await fetch(buildApiUrl(`/api/properties${queryString ? `?${queryString}` : ''}`), {
     headers: {
       Accept: 'application/json',
     },
