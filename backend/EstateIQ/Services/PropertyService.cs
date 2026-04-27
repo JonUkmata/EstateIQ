@@ -252,6 +252,26 @@ public class PropertyService(
     }
 
     /// <summary>
+    /// Gets a filtered and paginated list of properties.
+    /// </summary>
+    public async Task<PagedResult<PropertyDto>> GetFilteredAsync(PropertyQueryParameters queryParameters)
+    {
+        ArgumentNullException.ThrowIfNull(queryParameters);
+        ValidateQueryParameters(queryParameters);
+
+        var (items, totalCount) = await _propertyRepository.GetFilteredAsync(queryParameters);
+
+        return new PagedResult<PropertyDto>
+        {
+            Items = _mapper.Map<IEnumerable<PropertyDto>>(items).ToList(),
+            TotalCount = totalCount,
+            PageNumber = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize)
+        };
+    }
+
+    /// <summary>
     /// Changes the status of a property.
     /// </summary>
     public async Task<PropertyDto> ChangeStatusAsync(int id, int newStatusId)
@@ -384,6 +404,47 @@ public class PropertyService(
             case UpdatePropertyDto updatePropertyDto:
                 AddFutureYearError(updatePropertyDto.YearBuilt, errors, nameof(UpdatePropertyDto.YearBuilt));
                 break;
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateQueryParameters(PropertyQueryParameters queryParameters)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (queryParameters.Page <= 0)
+        {
+            errors[nameof(PropertyQueryParameters.Page)] = ["Page must be greater than zero."];
+        }
+
+        if (queryParameters.PageSize <= 0)
+        {
+            errors[nameof(PropertyQueryParameters.PageSize)] = ["PageSize must be greater than zero."];
+        }
+        else if (queryParameters.PageSize > 100)
+        {
+            errors[nameof(PropertyQueryParameters.PageSize)] = ["PageSize must be less than or equal to 100."];
+        }
+
+        if (queryParameters.MinPrice.HasValue && queryParameters.MinPrice.Value < 0)
+        {
+            errors[nameof(PropertyQueryParameters.MinPrice)] = ["MinPrice cannot be negative."];
+        }
+
+        if (queryParameters.MaxPrice.HasValue && queryParameters.MaxPrice.Value < 0)
+        {
+            errors[nameof(PropertyQueryParameters.MaxPrice)] = ["MaxPrice cannot be negative."];
+        }
+
+        if (queryParameters.MinPrice.HasValue &&
+            queryParameters.MaxPrice.HasValue &&
+            queryParameters.MinPrice.Value > queryParameters.MaxPrice.Value)
+        {
+            errors[nameof(PropertyQueryParameters.MinPrice)] = ["MinPrice cannot be greater than MaxPrice."];
         }
 
         if (errors.Count > 0)

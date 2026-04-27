@@ -19,19 +19,25 @@ public class PropertiesController(
     private readonly ILogger<PropertiesController> _logger = logger;
 
     /// <summary>
-    /// Gets all properties.
+    /// Gets properties with optional filtering and pagination.
     /// </summary>
-    /// <returns>A list of properties with related lookup data.</returns>
+    /// <param name="queryParameters">The filter and pagination query parameters.</param>
+    /// <returns>A filtered and paginated list of properties with related lookup data.</returns>
     [HttpGet]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(IEnumerable<PropertyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<PropertyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<PropertyDto>>> GetProperties()
+    public async Task<ActionResult<PagedResult<PropertyDto>>> GetProperties([FromQuery] PropertyQueryParameters queryParameters)
     {
         try
         {
-            var properties = await _propertyService.GetAllAsync();
+            var properties = await _propertyService.GetFilteredAsync(queryParameters);
             return Ok(properties);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
         }
         catch (Exception exception)
         {

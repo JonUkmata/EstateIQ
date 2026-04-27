@@ -72,6 +72,14 @@ export type CreatePropertyPayload = {
   longitude?: number | null
 }
 
+type PagedResult<T> = {
+  items: T[]
+  totalCount: number
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+}
+
 export async function getApiTestMessage(signal?: AbortSignal) {
   const response = await fetch(buildApiUrl('/api/test'), {
     headers: {
@@ -99,7 +107,9 @@ export async function getProperties(signal?: AbortSignal) {
     throw new Error(`Request failed with status ${response.status}`)
   }
 
-  return response.json() as Promise<Property[]>
+  const result = (await response.json()) as Property[] | PagedResult<Property>
+
+  return Array.isArray(result) ? result : result.items
 }
 
 export async function getPropertyTypes(signal?: AbortSignal) {
