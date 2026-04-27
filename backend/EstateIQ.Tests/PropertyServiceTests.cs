@@ -178,7 +178,7 @@ public class PropertyServiceTests
         });
 
         Assert.Equal(1, result.TotalCount);
-        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(1, result.Page);
         Assert.Equal(10, result.PageSize);
         Assert.Single(result.Items);
         Assert.Equal("Modern Apartment", result.Items.Single().Title);

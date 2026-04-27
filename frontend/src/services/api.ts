@@ -75,7 +75,7 @@ export type CreatePropertyPayload = {
 type PagedResult<T> = {
   items: T[]
   totalCount: number
-  pageNumber: number
+  page: number
   pageSize: number
   totalPages: number
 }

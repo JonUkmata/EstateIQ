@@ -245,7 +245,7 @@ public class PropertyService(
         {
             Items = detailedItems.ToList(),
             TotalCount = totalCount,
-            PageNumber = pageNumber,
+            Page = pageNumber,
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         };
@@ -265,7 +265,7 @@ public class PropertyService(
         {
             Items = _mapper.Map<IEnumerable<PropertyDto>>(items).ToList(),
             TotalCount = totalCount,
-            PageNumber = queryParameters.Page,
+            Page = queryParameters.Page,
             PageSize = queryParameters.PageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize)
         };

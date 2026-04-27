@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
 using EstateIQ.Models;
@@ -27,12 +28,22 @@ public class PropertiesControllerTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var result = await response.Content.ReadFromJsonAsync<PagedResult<PropertyDto>>();
+        var content = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(content);
+        Assert.True(document.RootElement.TryGetProperty("items", out _));
+        Assert.True(document.RootElement.TryGetProperty("totalCount", out _));
+        Assert.True(document.RootElement.TryGetProperty("page", out _));
+        Assert.True(document.RootElement.TryGetProperty("pageSize", out _));
+        Assert.True(document.RootElement.TryGetProperty("totalPages", out _));
+        Assert.False(document.RootElement.TryGetProperty("pageNumber", out _));
+
+        var result = JsonSerializer.Deserialize<PagedResult<PropertyDto>>(content, JsonSerializerOptions.Web);
         Assert.NotNull(result);
         Assert.Single(result!.Items);
         Assert.Equal(1, result.TotalCount);
-        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(1, result.Page);
         Assert.Equal(10, result.PageSize);
+        Assert.Equal(1, result.TotalPages);
 
         var property = result.Items.Single();
         Assert.Equal("Modern Apartment", property.Title);
@@ -55,8 +66,9 @@ public class PropertiesControllerTests
         var result = await response.Content.ReadFromJsonAsync<PagedResult<PropertyDto>>();
         Assert.NotNull(result);
         Assert.Equal(1, result!.TotalCount);
-        Assert.Equal(1, result.PageNumber);
+        Assert.Equal(1, result.Page);
         Assert.Equal(1, result.PageSize);
+        Assert.Equal(1, result.TotalPages);
         Assert.Single(result.Items);
         Assert.Equal("Modern Apartment", result.Items.Single().Title);
     }
