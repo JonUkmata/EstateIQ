@@ -75,29 +75,55 @@ export default function PropertiesPage() {
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 350)
 
   useEffect(() => {
     const controller = new AbortController()
 
-    async function loadPageData() {
+    async function loadLookups() {
       try {
-        setLoadState('loading')
         setErrorMessage('')
 
-        const [propertiesResult, typesResult, statusesResult, companiesResult, agentsResult] =
-          await Promise.all([
-            getProperties(controller.signal),
-            getPropertyTypes(controller.signal),
-            getPropertyStatuses(controller.signal),
-            getCompanies(controller.signal),
-            getAgents(controller.signal),
-          ])
+        const [typesResult, statusesResult, companiesResult, agentsResult] = await Promise.all([
+          getPropertyTypes(controller.signal),
+          getPropertyStatuses(controller.signal),
+          getCompanies(controller.signal),
+          getAgents(controller.signal),
+        ])
 
-        setProperties(propertiesResult)
         setPropertyTypes(typesResult)
         setPropertyStatuses(statusesResult)
         setCompanies(companiesResult)
         setAgents(agentsResult)
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load properties.')
+        setLoadState('error')
+      }
+    }
+
+    void loadLookups()
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadProperties() {
+      try {
+        setLoadState('loading')
+        setErrorMessage('')
+
+        const propertiesResult = await getProperties(controller.signal, {
+          search: debouncedSearchTerm,
+        })
+
+        setProperties(propertiesResult)
         setLoadState('success')
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -109,10 +135,10 @@ export default function PropertiesPage() {
       }
     }
 
-    void loadPageData()
+    void loadProperties()
 
     return () => controller.abort()
-  }, [])
+  }, [debouncedSearchTerm])
 
   const propertyCountLabel = useMemo(() => {
     if (loadState === 'loading') {
@@ -168,7 +194,7 @@ export default function PropertiesPage() {
       setSubmitMessage('')
 
       await createProperty(buildPayload(form))
-      const refreshedProperties = await getProperties()
+      const refreshedProperties = await getProperties(undefined, { search: debouncedSearchTerm })
 
       setProperties(refreshedProperties)
       setForm(initialFormState)
@@ -192,6 +218,20 @@ export default function PropertiesPage() {
           {loadState === 'error' ? 'Error' : propertyCountLabel}
         </span>
       </div>
+
+      <section className="search-panel">
+        <div className="search-panel-copy">
+          <h2>Search Properties</h2>
+        </div>
+        <label className="search-field">
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search title or description"
+            type="search"
+          />
+        </label>
+      </section>
 
       <section className="form-panel">
         <div className="form-panel-header">
@@ -596,4 +636,18 @@ function buildPayload(form: PropertyFormState): CreatePropertyPayload {
 
 function toOptionalNumber(value: string) {
   return value ? Number(value) : null
+}
+
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, delayMs)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [value, delayMs])
+
+  return debouncedValue
 }
