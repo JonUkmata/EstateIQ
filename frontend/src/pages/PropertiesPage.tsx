@@ -38,6 +38,14 @@ type PropertyFormState = {
 
 type FormErrors = Partial<Record<keyof PropertyFormState, string>>
 
+type PropertyFilterState = {
+  city: string
+  propertyTypeId: string
+  propertyStatusId: string
+  minPrice: string
+  maxPrice: string
+}
+
 const initialFormState: PropertyFormState = {
   title: '',
   description: '',
@@ -57,6 +65,14 @@ const initialFormState: PropertyFormState = {
   longitude: '',
 }
 
+const initialFilterState: PropertyFilterState = {
+  city: '',
+  propertyTypeId: '',
+  propertyStatusId: '',
+  minPrice: '',
+  maxPrice: '',
+}
+
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -67,9 +83,11 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
   const [propertyStatuses, setPropertyStatuses] = useState<PropertyStatus[]>([])
+  const [cityOptions, setCityOptions] = useState<string[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [form, setForm] = useState<PropertyFormState>(initialFormState)
+  const [filters, setFilters] = useState<PropertyFilterState>(initialFilterState)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
@@ -77,6 +95,7 @@ export default function PropertiesPage() {
   const [submitMessage, setSubmitMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 350)
+  const debouncedFilters = useDebouncedValue(filters, 350)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -85,17 +104,20 @@ export default function PropertiesPage() {
       try {
         setErrorMessage('')
 
-        const [typesResult, statusesResult, companiesResult, agentsResult] = await Promise.all([
-          getPropertyTypes(controller.signal),
-          getPropertyStatuses(controller.signal),
-          getCompanies(controller.signal),
-          getAgents(controller.signal),
-        ])
+        const [typesResult, statusesResult, companiesResult, agentsResult, propertiesResult] =
+          await Promise.all([
+            getPropertyTypes(controller.signal),
+            getPropertyStatuses(controller.signal),
+            getCompanies(controller.signal),
+            getAgents(controller.signal),
+            getProperties(controller.signal, { pageSize: 100 }),
+          ])
 
         setPropertyTypes(typesResult)
         setPropertyStatuses(statusesResult)
         setCompanies(companiesResult)
         setAgents(agentsResult)
+        setCityOptions(getUniqueCities(propertiesResult))
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
@@ -121,6 +143,12 @@ export default function PropertiesPage() {
 
         const propertiesResult = await getProperties(controller.signal, {
           search: debouncedSearchTerm,
+          city: debouncedFilters.city,
+          propertyTypeId: debouncedFilters.propertyTypeId,
+          propertyStatusId: debouncedFilters.propertyStatusId,
+          minPrice: debouncedFilters.minPrice,
+          maxPrice: debouncedFilters.maxPrice,
+          pageSize: 100,
         })
 
         setProperties(propertiesResult)
@@ -138,7 +166,7 @@ export default function PropertiesPage() {
     void loadProperties()
 
     return () => controller.abort()
-  }, [debouncedSearchTerm])
+  }, [debouncedFilters, debouncedSearchTerm])
 
   const propertyCountLabel = useMemo(() => {
     if (loadState === 'loading') {
@@ -162,6 +190,18 @@ export default function PropertiesPage() {
       }
       return next
     })
+  }
+
+  function updateFilterField(field: keyof PropertyFilterState, value: string) {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  function resetFilters() {
+    setSearchTerm('')
+    setFilters(initialFilterState)
   }
 
   async function handleCompanyChange(value: string) {
@@ -193,10 +233,19 @@ export default function PropertiesPage() {
       setSubmitState('submitting')
       setSubmitMessage('')
 
-      await createProperty(buildPayload(form))
-      const refreshedProperties = await getProperties(undefined, { search: debouncedSearchTerm })
+      const createdProperty = await createProperty(buildPayload(form))
+      const refreshedProperties = await getProperties(undefined, {
+        search: debouncedSearchTerm,
+        city: debouncedFilters.city,
+        propertyTypeId: debouncedFilters.propertyTypeId,
+        propertyStatusId: debouncedFilters.propertyStatusId,
+        minPrice: debouncedFilters.minPrice,
+        maxPrice: debouncedFilters.maxPrice,
+        pageSize: 100,
+      })
 
       setProperties(refreshedProperties)
+      setCityOptions((current) => getUniqueCities([...refreshedProperties, createdProperty], current))
       setForm(initialFormState)
       setFormErrors({})
       setSubmitState('success')
@@ -221,9 +270,10 @@ export default function PropertiesPage() {
 
       <section className="search-panel">
         <div className="search-panel-copy">
-          <h2>Search Properties</h2>
+          <h2>Filter Properties</h2>
         </div>
-        <label className="search-field">
+        <label className="search-field filter-field">
+          <span>Search</span>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -231,6 +281,78 @@ export default function PropertiesPage() {
             type="search"
           />
         </label>
+
+        <label className="filter-field">
+          <span>City</span>
+          <select value={filters.city} onChange={(event) => updateFilterField('city', event.target.value)}>
+            <option value="">All cities</option>
+            {cityOptions.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="filter-field">
+          <span>Property Type</span>
+          <select
+            value={filters.propertyTypeId}
+            onChange={(event) => updateFilterField('propertyTypeId', event.target.value)}
+          >
+            <option value="">All types</option>
+            {propertyTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="filter-field">
+          <span>Status</span>
+          <select
+            value={filters.propertyStatusId}
+            onChange={(event) => updateFilterField('propertyStatusId', event.target.value)}
+          >
+            <option value="">All statuses</option>
+            {propertyStatuses.map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="filter-field">
+          <span>Min Price</span>
+          <input
+            value={filters.minPrice}
+            onChange={(event) => updateFilterField('minPrice', event.target.value)}
+            min="0"
+            step="0.01"
+            type="number"
+            placeholder="0"
+          />
+        </label>
+
+        <label className="filter-field">
+          <span>Max Price</span>
+          <input
+            value={filters.maxPrice}
+            onChange={(event) => updateFilterField('maxPrice', event.target.value)}
+            min="0"
+            step="0.01"
+            type="number"
+            placeholder="500000"
+          />
+        </label>
+
+        <div className="filter-actions">
+          <button type="button" onClick={resetFilters}>
+            Clear
+          </button>
+        </div>
       </section>
 
       <section className="form-panel">
@@ -638,7 +760,15 @@ function toOptionalNumber(value: string) {
   return value ? Number(value) : null
 }
 
-function useDebouncedValue(value: string, delayMs: number) {
+function getUniqueCities(properties: Property[], existingCities: string[] = []) {
+  return Array.from(
+    new Set(
+      [...existingCities, ...properties.map((property) => property.city.trim())].filter(Boolean),
+    ),
+  ).sort((first, second) => first.localeCompare(second))
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
