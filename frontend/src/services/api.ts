@@ -72,7 +72,7 @@ export type CreatePropertyPayload = {
   longitude?: number | null
 }
 
-type PagedResult<T> = {
+export type PagedResult<T> = {
   items: T[]
   totalCount: number
   page: number
@@ -87,6 +87,7 @@ type PropertyQuery = {
   propertyStatusId?: string | number
   minPrice?: string | number
   maxPrice?: string | number
+  page?: string | number
   pageSize?: string | number
 }
 
@@ -113,6 +114,7 @@ export async function getProperties(signal?: AbortSignal, query?: PropertyQuery)
   const propertyStatusId = query?.propertyStatusId?.toString().trim()
   const minPrice = query?.minPrice?.toString().trim()
   const maxPrice = query?.maxPrice?.toString().trim()
+  const page = query?.page?.toString().trim()
   const pageSize = query?.pageSize?.toString().trim()
 
   if (search) {
@@ -139,6 +141,10 @@ export async function getProperties(signal?: AbortSignal, query?: PropertyQuery)
     parameters.set('maxPrice', maxPrice)
   }
 
+  if (page) {
+    parameters.set('page', page)
+  }
+
   if (pageSize) {
     parameters.set('pageSize', pageSize)
   }
@@ -157,7 +163,15 @@ export async function getProperties(signal?: AbortSignal, query?: PropertyQuery)
 
   const result = (await response.json()) as Property[] | PagedResult<Property>
 
-  return Array.isArray(result) ? result : result.items
+  return Array.isArray(result)
+    ? {
+        items: result,
+        totalCount: result.length,
+        page: 1,
+        pageSize: result.length,
+        totalPages: result.length > 0 ? 1 : 0,
+      }
+    : result
 }
 
 export async function getPropertyTypes(signal?: AbortSignal) {
