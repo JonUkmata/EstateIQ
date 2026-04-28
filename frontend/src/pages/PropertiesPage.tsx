@@ -9,6 +9,7 @@ import {
   type Agent,
   type Company,
   type CreatePropertyPayload,
+  type PagedResult,
   type Property,
   type PropertyStatus,
   type PropertyType,
@@ -73,6 +74,8 @@ const initialFilterState: PropertyFilterState = {
   maxPrice: '',
 }
 
+const propertiesPageSize = 10
+
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -88,6 +91,14 @@ export default function PropertiesPage() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [form, setForm] = useState<PropertyFormState>(initialFormState)
   const [filters, setFilters] = useState<PropertyFilterState>(initialFilterState)
+  const [pagination, setPagination] = useState<PagedResult<Property>>({
+    items: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: propertiesPageSize,
+    totalPages: 0,
+  })
+  const [currentPage, setCurrentPage] = useState(1)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
@@ -117,7 +128,7 @@ export default function PropertiesPage() {
         setPropertyStatuses(statusesResult)
         setCompanies(companiesResult)
         setAgents(agentsResult)
-        setCityOptions(getUniqueCities(propertiesResult))
+        setCityOptions(getUniqueCities(propertiesResult.items))
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
@@ -148,10 +159,12 @@ export default function PropertiesPage() {
           propertyStatusId: debouncedFilters.propertyStatusId,
           minPrice: debouncedFilters.minPrice,
           maxPrice: debouncedFilters.maxPrice,
-          pageSize: 100,
+          page: currentPage,
+          pageSize: propertiesPageSize,
         })
 
-        setProperties(propertiesResult)
+        setProperties(propertiesResult.items)
+        setPagination(propertiesResult)
         setLoadState('success')
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -166,15 +179,15 @@ export default function PropertiesPage() {
     void loadProperties()
 
     return () => controller.abort()
-  }, [debouncedFilters, debouncedSearchTerm])
+  }, [currentPage, debouncedFilters, debouncedSearchTerm])
 
   const propertyCountLabel = useMemo(() => {
     if (loadState === 'loading') {
       return 'Loading'
     }
 
-    return `${properties.length} ${properties.length === 1 ? 'property' : 'properties'}`
-  }, [loadState, properties.length])
+    return `${pagination.totalCount} ${pagination.totalCount === 1 ? 'property' : 'properties'}`
+  }, [loadState, pagination.totalCount])
 
   function updateFormField(field: keyof PropertyFormState, value: string) {
     setForm((current) => ({
@@ -193,15 +206,27 @@ export default function PropertiesPage() {
   }
 
   function updateFilterField(field: keyof PropertyFilterState, value: string) {
+    setCurrentPage(1)
     setFilters((current) => ({
       ...current,
       [field]: value,
     }))
   }
 
+  function updateSearchTerm(value: string) {
+    setCurrentPage(1)
+    setSearchTerm(value)
+  }
+
   function resetFilters() {
+    setCurrentPage(1)
     setSearchTerm('')
     setFilters(initialFilterState)
+  }
+
+  function changePage(page: number) {
+    const nextPage = Math.min(Math.max(page, 1), Math.max(pagination.totalPages, 1))
+    setCurrentPage(nextPage)
   }
 
   async function handleCompanyChange(value: string) {
@@ -241,11 +266,13 @@ export default function PropertiesPage() {
         propertyStatusId: debouncedFilters.propertyStatusId,
         minPrice: debouncedFilters.minPrice,
         maxPrice: debouncedFilters.maxPrice,
-        pageSize: 100,
+        page: currentPage,
+        pageSize: propertiesPageSize,
       })
 
-      setProperties(refreshedProperties)
-      setCityOptions((current) => getUniqueCities([...refreshedProperties, createdProperty], current))
+      setProperties(refreshedProperties.items)
+      setPagination(refreshedProperties)
+      setCityOptions((current) => getUniqueCities([...refreshedProperties.items, createdProperty], current))
       setForm(initialFormState)
       setFormErrors({})
       setSubmitState('success')
@@ -276,7 +303,7 @@ export default function PropertiesPage() {
           <span>Search</span>
           <input
             value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            onChange={(event) => updateSearchTerm(event.target.value)}
             placeholder="Search title or description"
             type="search"
           />
@@ -641,6 +668,41 @@ export default function PropertiesPage() {
             </table>
           </div>
         )}
+
+        {loadState === 'success' && pagination.totalPages > 1 && (
+          <div className="pagination-bar" aria-label="Properties pagination">
+            <span className="pagination-summary">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <div className="pagination-controls">
+              <button
+                type="button"
+                onClick={() => changePage(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+              >
+                Previous
+              </button>
+              {getPageNumbers(pagination.totalPages, pagination.page).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  className={page === pagination.page ? 'pagination-page-active' : undefined}
+                  aria-current={page === pagination.page ? 'page' : undefined}
+                  onClick={() => changePage(page)}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => changePage(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </section>
   )
@@ -766,6 +828,15 @@ function getUniqueCities(properties: Property[], existingCities: string[] = []) 
       [...existingCities, ...properties.map((property) => property.city.trim())].filter(Boolean),
     ),
   ).sort((first, second) => first.localeCompare(second))
+}
+
+function getPageNumbers(totalPages: number, currentPage: number) {
+  const visiblePages = 5
+  const halfWindow = Math.floor(visiblePages / 2)
+  const firstPage = Math.max(1, Math.min(currentPage - halfWindow, totalPages - visiblePages + 1))
+  const lastPage = Math.min(totalPages, firstPage + visiblePages - 1)
+
+  return Array.from({ length: lastPage - firstPage + 1 }, (_, index) => firstPage + index)
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number) {

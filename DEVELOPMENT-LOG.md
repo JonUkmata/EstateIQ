@@ -537,18 +537,90 @@ The entries below document completed work visible in the current codebase and re
 
 ---
 
+### Completed - TICKET 14 - Property List Pagination Controls
+
+**Developer:** Codex  
+**Completion Date:** 2026-04-28  
+**Status:** Completed
+
+**What was added:**
+
+- Pagination controls on the Properties list with Previous, Next, and numbered page buttons.
+- Properties API client support for `page` and paged response metadata.
+- List refresh by selected page while preserving active search and filters.
+- Automatic reset to page 1 when search or filters change.
+- Responsive pagination styling for desktop and mobile.
+
+**Files Changed:**
+
+- `/frontend/src/services/api.ts`
+- `/frontend/src/pages/PropertiesPage.tsx`
+- `/frontend/src/styles.css`
+- `/DEVELOPMENT-LOG.md`
+
+**Testing:**
+
+- `npm run build`
+- Result: Passing.
+
+**Dependencies:**
+
+- Requires: `GET /api/properties` paged response metadata.
+- Blocks: None.
+
+**Notes:**
+
+- The first frontend build attempt failed inside the sandbox with Vite `spawn EPERM`; the same command passed when rerun outside the sandbox.
+
+---
+
+### Completed - TICKET 15 - Demo Property Seed Data For Pagination Testing
+
+**Developer:** Codex  
+**Completion Date:** 2026-04-28  
+**Status:** Completed
+
+**What was added:**
+
+- Expanded required demo property seed data to 22 records.
+- Property seeding now inserts missing demo properties by title instead of skipping when any property exists.
+- Demo records cycle through available property types, statuses, and active agent-company relationships.
+
+**Files Changed:**
+
+- `/backend/EstateIQ/Data/PropertySeeder.cs`
+- `/DEVELOPMENT-LOG.md`
+
+**Testing:**
+
+- Manual API insertion for current local DB: 19 missing demo properties created; total properties now 22; expected pages at page size 10: 3.
+- `dotnet test .\backend\EstateIQ.Tests\EstateIQ.Tests.csproj`
+- Result: Not completed because running process `EstateIQ (15644)` locked `backend/EstateIQ/bin/Debug/net9.0/EstateIQ.exe` and `EstateIQ.dll`.
+- Restore succeeded after rerunning outside the sandbox.
+
+**Dependencies:**
+
+- Requires: Property types, property statuses, companies, agents, and active agent-company relationships.
+- Blocks: None.
+
+**Notes:**
+
+- Restart the backend so `PropertySeeder.SeedRequiredPropertiesAsync` runs and inserts the missing demo properties into the local database.
+
+---
+
 ## Summary Statistics
 
 | Metric | Count |
 | --- | ---: |
-| Completed tickets documented | 13 |
+| Completed tickets documented | 15 |
 | In Progress tickets documented | 0 |
 | Pending tickets documented | 0 |
 | Backend test files | 10 |
 | Current passing backend tests | 49 |
 | Frontend build status | Passing |
 | New files documented as added | 48 |
-| Existing files documented as modified | 18 |
+| Existing files documented as modified | 24 |
 
 ## Current Architecture Status
 
@@ -570,6 +642,7 @@ The entries below document completed work visible in the current codebase and re
 - [x] Frontend API service layer present
 - [x] Properties frontend list and create workflow present
 - [x] Properties frontend search and filtering workflow present
+- [x] Properties frontend pagination workflow present
 - [x] Coordinates persisted and returned for future map feature
 - [ ] Authentication/authorization implemented
 - [ ] Production deployment pipeline documented
