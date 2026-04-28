@@ -82,6 +82,12 @@ type PagedResult<T> = {
 
 type PropertyQuery = {
   search?: string
+  city?: string
+  propertyTypeId?: string | number
+  propertyStatusId?: string | number
+  minPrice?: string | number
+  maxPrice?: string | number
+  pageSize?: string | number
 }
 
 export async function getApiTestMessage(signal?: AbortSignal) {
@@ -102,9 +108,39 @@ export async function getApiTestMessage(signal?: AbortSignal) {
 export async function getProperties(signal?: AbortSignal, query?: PropertyQuery) {
   const parameters = new URLSearchParams()
   const search = query?.search?.trim()
+  const city = query?.city?.toString().trim()
+  const propertyTypeId = query?.propertyTypeId?.toString().trim()
+  const propertyStatusId = query?.propertyStatusId?.toString().trim()
+  const minPrice = query?.minPrice?.toString().trim()
+  const maxPrice = query?.maxPrice?.toString().trim()
+  const pageSize = query?.pageSize?.toString().trim()
 
   if (search) {
     parameters.set('search', search)
+  }
+
+  if (city) {
+    parameters.set('city', city)
+  }
+
+  if (propertyTypeId) {
+    parameters.set('propertyTypeId', propertyTypeId)
+  }
+
+  if (propertyStatusId) {
+    parameters.set('propertyStatusId', propertyStatusId)
+  }
+
+  if (minPrice) {
+    parameters.set('minPrice', minPrice)
+  }
+
+  if (maxPrice) {
+    parameters.set('maxPrice', maxPrice)
+  }
+
+  if (pageSize) {
+    parameters.set('pageSize', pageSize)
   }
 
   const queryString = parameters.toString()

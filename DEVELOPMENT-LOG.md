@@ -499,18 +499,56 @@ The entries below document completed work visible in the current codebase and re
 
 ---
 
+### Completed - TICKET 13 - Property Filters UI
+
+**Developer:** Codex  
+**Completion Date:** 2026-04-28  
+**Status:** Completed
+
+**What was added:**
+
+- Properties page filter UI for city, property type, status, minimum price, and maximum price.
+- Real-time filter refresh using the existing `GET /api/properties` query parameters.
+- Property type and status filter dropdowns connected to the existing lookup APIs.
+- City dropdown populated from API property data.
+- Clear action for resetting search and filters.
+
+**Files Changed:**
+
+- `/frontend/src/services/api.ts`
+- `/frontend/src/pages/PropertiesPage.tsx`
+- `/frontend/src/styles.css`
+- `/DEVELOPMENT-LOG.md`
+
+**Testing:**
+
+- `npm run build`
+- Result: Passing.
+
+**Dependencies:**
+
+- Requires: `GET /api/properties`, `GET /api/propertytypes`, and `GET /api/propertystatuses`.
+- Blocks: None.
+
+**Notes:**
+
+- The first frontend build attempt failed inside the sandbox with Vite `spawn EPERM`; the same command passed when rerun outside the sandbox.
+- Background dev-server startup with `Start-Process` did not leave a listener on port 5173, so no local URL was confirmed from this run.
+
+---
+
 ## Summary Statistics
 
 | Metric | Count |
 | --- | ---: |
-| Completed tickets documented | 12 |
+| Completed tickets documented | 13 |
 | In Progress tickets documented | 0 |
 | Pending tickets documented | 0 |
 | Backend test files | 10 |
 | Current passing backend tests | 49 |
 | Frontend build status | Passing |
 | New files documented as added | 48 |
-| Existing files documented as modified | 14 |
+| Existing files documented as modified | 18 |
 
 ## Current Architecture Status
 
@@ -531,6 +569,7 @@ The entries below document completed work visible in the current codebase and re
 - [x] Frontend React app present
 - [x] Frontend API service layer present
 - [x] Properties frontend list and create workflow present
+- [x] Properties frontend search and filtering workflow present
 - [x] Coordinates persisted and returned for future map feature
 - [ ] Authentication/authorization implemented
 - [ ] Production deployment pipeline documented
@@ -606,4 +645,4 @@ Copy this template for each future ticket and paste it under the current month.
 7. Keep Known Issues current and remove resolved issues.
 8. Update the `Last Updated` line below.
 
-**Last Updated:** 2026-04-26 by Codex
+**Last Updated:** 2026-04-28 by Codex
