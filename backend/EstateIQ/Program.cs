@@ -100,6 +100,7 @@ if (!app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await CompanySeeder.SeedRequiredCompaniesAsync(dbContext);
     await PropertyTypeSeeder.SeedRequiredPropertyTypesAsync(dbContext);
     await PropertyStatusSeeder.SeedRequiredPropertyStatusesAsync(dbContext);
     await AgentCompanySeeder.SeedRequiredAgentsAndRelationshipsAsync(dbContext);
