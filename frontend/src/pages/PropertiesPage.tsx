@@ -727,6 +727,9 @@ export default function PropertiesPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="table-actions">
+                        <Link className="table-action-link" to={`/properties/${property.id}/edit`}>
+                          Edit
+                        </Link>
                         <Link className="table-action-link" to={`/properties/${property.id}`}>
                           Details
                         </Link>
