@@ -302,6 +302,24 @@ a {
   box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
 }
 
+.map-panel {
+  overflow: hidden;
+  min-height: 560px;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
+}
+
+.property-map {
+  width: 100%;
+  min-height: 560px;
+}
+
+.leaflet-container {
+  font: inherit;
+}
+
 .search-panel {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr)) auto;
@@ -770,5 +788,10 @@ a {
 
   .pagination-controls {
     justify-content: flex-start;
+  }
+
+  .map-panel,
+  .property-map {
+    min-height: 460px;
   }
 }
