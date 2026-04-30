@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   createProperty,
   deleteProperty,
@@ -706,6 +707,7 @@ export default function PropertiesPage() {
             <table className="properties-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Title</th>
                   <th>Price</th>
                   <th>City</th>
@@ -716,6 +718,7 @@ export default function PropertiesPage() {
               <tbody>
                 {properties.map((property) => (
                   <tr key={property.id}>
+                    <td data-label="ID">{property.id}</td>
                     <td data-label="Title">{property.title}</td>
                     <td data-label="Price">{currencyFormatter.format(property.price)}</td>
                     <td data-label="City">{property.city}</td>
@@ -723,17 +726,22 @@ export default function PropertiesPage() {
                       <span className="status-pill">{property.propertyStatus?.name ?? 'Unknown'}</span>
                     </td>
                     <td data-label="Actions">
-                      <button
-                        type="button"
-                        className="table-action-danger"
-                        onClick={() => {
-                          setDeleteMessage(null)
-                          setPropertyPendingDelete(property)
-                        }}
-                        disabled={deletingPropertyId === property.id}
-                      >
-                        {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
-                      </button>
+                      <div className="table-actions">
+                        <Link className="table-action-link" to={`/properties/${property.id}`}>
+                          Details
+                        </Link>
+                        <button
+                          type="button"
+                          className="table-action-danger"
+                          onClick={() => {
+                            setDeleteMessage(null)
+                            setPropertyPendingDelete(property)
+                          }}
+                          disabled={deletingPropertyId === property.id}
+                        >
+                          {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

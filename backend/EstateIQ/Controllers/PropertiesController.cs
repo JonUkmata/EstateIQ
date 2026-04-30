@@ -108,6 +108,45 @@ public class PropertiesController(
     }
 
     /// <summary>
+    /// Updates an existing property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <param name="dto">The property update payload.</param>
+    /// <returns>The updated property with related lookup data.</returns>
+    [HttpPut("{id:int}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PropertyDto>> UpdateProperty(int id, [FromBody] UpdatePropertyDto dto)
+    {
+        try
+        {
+            var property = await _propertyService.UpdateAsync(id, dto);
+            return Ok(property);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error updating property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the property.");
+        }
+    }
+
+    /// <summary>
     /// Deletes a property when business rules allow it.
     /// </summary>
     /// <param name="id">The property identifier.</param>

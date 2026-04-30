@@ -125,6 +125,58 @@ public class PropertiesControllerTests
     }
 
     [Fact]
+    public async Task UpdateProperty_ValidPayload_ReturnsUpdatedProperty()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var updateDto = BuildUpdateDto();
+        var response = await client.PutAsJsonAsync($"/api/properties/{propertyId}", updateDto);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<PropertyDto>();
+        Assert.NotNull(result);
+        Assert.Equal(propertyId, result!.Id);
+        Assert.Equal("Updated Apartment", result.Title);
+        Assert.Equal("Updated description", result.Description);
+        Assert.Equal(145000m, result.Price);
+        Assert.Equal("Durres", result.City);
+        Assert.Equal(41.323m, result.Latitude);
+        Assert.Equal(19.441m, result.Longitude);
+    }
+
+    [Fact]
+    public async Task UpdateProperty_InvalidPayload_ReturnsBadRequest()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var invalidDto = BuildUpdateDto();
+        invalidDto.Title = string.Empty;
+        invalidDto.Price = 0;
+
+        var response = await client.PutAsJsonAsync($"/api/properties/{propertyId}", invalidDto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProperty_MissingProperty_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedReferenceDataAsync();
+        using var client = factory.CreateClient();
+
+        var updateDto = BuildUpdateDto();
+        var response = await client.PutAsJsonAsync("/api/properties/999", updateDto);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteProperty_ExistingProperty_ReturnsNoContentAndDeletesProperty()
     {
         await using var factory = new EstateIqWebApplicationFactory();
@@ -388,6 +440,30 @@ public class PropertiesControllerTests
             City = "Tirane",
             Latitude = 41.3275m,
             Longitude = 19.8187m
+        };
+    }
+
+    private static UpdatePropertyDto BuildUpdateDto()
+    {
+        return new UpdatePropertyDto
+        {
+            Id = 0,
+            Title = "Updated Apartment",
+            Description = "Updated description",
+            Price = 145000m,
+            Area = 82m,
+            Bedrooms = 3,
+            Bathrooms = 2,
+            Floors = 1,
+            YearBuilt = 2022,
+            PropertyTypeId = 1,
+            PropertyStatusId = 1,
+            CompanyId = 1,
+            AgentId = 1,
+            Address = "Rruga e Portit",
+            City = "Durres",
+            Latitude = 41.323m,
+            Longitude = 19.441m
         };
     }
 }

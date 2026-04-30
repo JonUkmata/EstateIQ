@@ -25,6 +25,37 @@ export type Property = {
   } | null
 }
 
+export type PropertyDetails = Property & {
+  propertyType: {
+    id: number
+    name: string
+    description?: string | null
+  }
+  propertyStatus: {
+    id: number
+    name: string
+    description?: string | null
+    colorCode?: string | null
+  }
+  company: {
+    id: number
+    name: string
+    email?: string | null
+    phone?: string | null
+    city?: string | null
+    isActive: boolean
+  }
+  agent: {
+    id: number
+    firstName: string
+    lastName: string
+    email: string
+    phone?: string | null
+    mobile?: string | null
+    isActive: boolean
+  }
+}
+
 export type PropertyType = {
   id: number
   name: string
@@ -174,6 +205,21 @@ export async function getProperties(signal?: AbortSignal, query?: PropertyQuery)
         totalPages: result.length > 0 ? 1 : 0,
       }
     : result
+}
+
+export async function getPropertyById(id: number, signal?: AbortSignal) {
+  const response = await fetch(buildApiUrl(`/api/properties/${id}`), {
+    headers: {
+      Accept: 'application/json',
+    },
+    signal,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`)
+  }
+
+  return response.json() as Promise<PropertyDetails>
 }
 
 export async function getPropertyTypes(signal?: AbortSignal) {
