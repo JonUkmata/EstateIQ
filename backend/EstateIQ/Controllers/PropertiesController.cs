@@ -106,4 +106,38 @@ public class PropertiesController(
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the property.");
         }
     }
+
+    /// <summary>
+    /// Deletes a property when business rules allow it.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <returns>No content when the property is deleted.</returns>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteProperty(int id)
+    {
+        try
+        {
+            var deleted = await _propertyService.DeleteAsync(id);
+
+            if (!deleted)
+            {
+                return NotFound($"Property with id {id} was not found.");
+            }
+
+            return NoContent();
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error deleting property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the property.");
+        }
+    }
 }

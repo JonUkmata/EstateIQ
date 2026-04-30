@@ -161,7 +161,7 @@ public class PropertyService(
             if (!CanDeleteProperty(property))
             {
                 _logger.LogWarning("Attempt to delete protected property {PropertyId} with status {Status}.", id, property.PropertyStatus.Name);
-                throw new BusinessRuleException("Sold or rented properties cannot be deleted.");
+                throw new BusinessRuleException("Sold, rented, or under-contract properties cannot be deleted.");
             }
 
             var deleted = await _propertyRepository.DeleteAsync(id);
@@ -350,6 +350,7 @@ public class PropertyService(
 
     private const string SoldStatusName = "Sold";
     private const string RentedStatusName = "Rented";
+    private const string UnderContractStatusName = "Under Contract";
 
     private async Task<IEnumerable<PropertyDto>> MapDetailedDtosAsync(IEnumerable<int> propertyIds)
     {
@@ -546,7 +547,9 @@ public class PropertyService(
 
     private static bool CanDeleteProperty(Property property)
     {
-        return !IsStatus(property, SoldStatusName) && !IsStatus(property, RentedStatusName);
+        return !IsStatus(property, SoldStatusName) &&
+               !IsStatus(property, RentedStatusName) &&
+               !IsStatus(property, UnderContractStatusName);
     }
 
     private static bool IsStatus(Property property, string statusName)
