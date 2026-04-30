@@ -256,3 +256,17 @@ export async function createProperty(payload: CreatePropertyPayload) {
 
   return response.json() as Promise<Property>
 }
+
+export async function deleteProperty(id: number) {
+  const response = await fetch(buildApiUrl(`/api/properties/${id}`), {
+    method: 'DELETE',
+    headers: {
+      Accept: 'text/plain',
+    },
+  })
+
+  if (!response.ok) {
+    const details = await response.text()
+    throw new Error(details || `Request failed with status ${response.status}`)
+  }
+}
