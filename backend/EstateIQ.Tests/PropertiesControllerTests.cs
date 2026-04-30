@@ -74,7 +74,7 @@ public class PropertiesControllerTests
     }
 
     [Fact]
-    public async Task GetProperty_ExistingId_ReturnsProperty()
+    public async Task GetProperty_ExistingId_ReturnsCompletePropertyDetails()
     {
         await using var factory = new EstateIqWebApplicationFactory();
         var propertyId = await factory.SeedPropertyAsync();
@@ -87,7 +87,19 @@ public class PropertiesControllerTests
         var result = await response.Content.ReadFromJsonAsync<PropertyDto>();
         Assert.NotNull(result);
         Assert.Equal(propertyId, result!.Id);
+        Assert.Equal("Modern Apartment", result.Title);
+        Assert.Equal("Freshly renovated apartment", result.Description);
+        Assert.Equal(120000m, result.Price);
+        Assert.Equal(2, result.Bedrooms);
+        Assert.Equal(1, result.Bathrooms);
+        Assert.Equal(78m, result.Area);
+        Assert.Equal("Rruga e Kavajes", result.Address);
+        Assert.Equal("Tirane", result.City);
+        Assert.Equal("Apartment", result.PropertyType.Name);
+        Assert.Equal("For Sale", result.PropertyStatus.Name);
         Assert.Equal("EstateIQ", result.Company.Name);
+        Assert.Equal("Valon", result.Agent.FirstName);
+        Assert.Equal("Dobrunaj", result.Agent.LastName);
         Assert.Equal(41.3275m, result.Latitude);
         Assert.Equal(19.8187m, result.Longitude);
     }
@@ -142,7 +154,16 @@ public class PropertiesControllerTests
         Assert.Equal("Updated Apartment", result.Title);
         Assert.Equal("Updated description", result.Description);
         Assert.Equal(145000m, result.Price);
+        Assert.Equal(82m, result.Area);
+        Assert.Equal(3, result.Bedrooms);
+        Assert.Equal(2, result.Bathrooms);
+        Assert.Equal("Rruga e Portit", result.Address);
         Assert.Equal("Durres", result.City);
+        Assert.Equal("Apartment", result.PropertyType.Name);
+        Assert.Equal("For Sale", result.PropertyStatus.Name);
+        Assert.Equal("EstateIQ", result.Company.Name);
+        Assert.Equal("Valon", result.Agent.FirstName);
+        Assert.Equal("Dobrunaj", result.Agent.LastName);
         Assert.Equal(41.323m, result.Latitude);
         Assert.Equal(19.441m, result.Longitude);
     }
