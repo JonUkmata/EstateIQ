@@ -16,6 +16,8 @@ export type Property = {
   bathrooms?: number | null
   floors?: number | null
   yearBuilt?: number | null
+  latitude?: number | null
+  longitude?: number | null
   propertyStatus?: {
     id: number
     name: string
