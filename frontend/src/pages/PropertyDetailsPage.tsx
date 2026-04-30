@@ -84,6 +84,9 @@ export default function PropertyDetailsPage() {
         <Link className="top-nav-link" to="/properties">
           Back to list
         </Link>
+        <Link className="top-nav-link" to={`/properties/${property.id}/edit`}>
+          Edit property
+        </Link>
       </div>
 
       <section className="details-grid">
