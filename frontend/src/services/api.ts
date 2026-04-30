@@ -105,6 +105,10 @@ export type CreatePropertyPayload = {
   longitude?: number | null
 }
 
+export type UpdatePropertyPayload = CreatePropertyPayload & {
+  id: number
+}
+
 export type PagedResult<T> = {
   items: T[]
   totalCount: number
@@ -317,4 +321,26 @@ export async function deleteProperty(id: number) {
     const details = await response.text()
     throw new Error(details || `Request failed with status ${response.status}`)
   }
+}
+
+export async function updateProperty(id: number, payload: UpdatePropertyPayload) {
+  const response = await fetch(buildApiUrl(`/api/properties/${id}`), {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? ''
+    const details = contentType.includes('application/json')
+      ? JSON.stringify(await response.json())
+      : await response.text()
+
+    throw new Error(details || `Request failed with status ${response.status}`)
+  }
+
+  return response.json() as Promise<PropertyDetails>
 }
