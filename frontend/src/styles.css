@@ -522,7 +522,7 @@ a {
 
 .properties-table {
   width: 100%;
-  min-width: 680px;
+  min-width: 780px;
   border-collapse: collapse;
 }
 
@@ -561,6 +561,112 @@ a {
   color: #1b5a34;
   font-size: 0.84rem;
   font-weight: 700;
+}
+
+.table-action-danger {
+  min-height: 38px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(143, 45, 45, 0.24);
+  border-radius: 12px;
+  background: rgba(239, 206, 206, 0.78);
+  color: #8f2d2d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.table-action-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.table-message {
+  padding: 0.8rem 1.1rem;
+  border-bottom: 1px solid rgba(22, 49, 38, 0.1);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.table-message-success {
+  background: rgba(201, 233, 209, 0.85);
+  color: #1c5b34;
+}
+
+.table-message-error {
+  background: rgba(239, 206, 206, 0.88);
+  color: #8f2d2d;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(17, 37, 28, 0.42);
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  padding: 1.25rem;
+  border: 1px solid rgba(22, 49, 38, 0.14);
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 24px 54px rgba(17, 37, 28, 0.24);
+}
+
+.confirm-dialog .panel-label {
+  margin-bottom: 0.35rem;
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  color: #163126;
+  font-size: 1.35rem;
+}
+
+.confirm-dialog p {
+  margin: 1rem 0 0;
+  color: #38584a;
+  line-height: 1.55;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.dialog-button-secondary,
+.dialog-button-danger {
+  min-height: 42px;
+  padding: 0.68rem 0.95rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.dialog-button-secondary {
+  border: 1px solid rgba(24, 53, 41, 0.15);
+  background: rgba(245, 249, 243, 0.92);
+  color: #274638;
+}
+
+.dialog-button-danger {
+  border: 1px solid rgba(143, 45, 45, 0.24);
+  background: rgba(239, 206, 206, 0.88);
+  color: #8f2d2d;
+}
+
+.dialog-button-secondary:disabled,
+.dialog-button-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .table-state {

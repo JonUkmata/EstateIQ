@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   createProperty,
+  deleteProperty,
   getAgents,
   getCompanies,
   getProperties,
@@ -102,8 +103,11 @@ export default function PropertiesPage() {
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
+  const [deletingPropertyId, setDeletingPropertyId] = useState<number | null>(null)
+  const [propertyPendingDelete, setPropertyPendingDelete] = useState<Property | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
+  const [deleteMessage, setDeleteMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 350)
   const debouncedFilters = useDebouncedValue(filters, 350)
@@ -280,6 +284,55 @@ export default function PropertiesPage() {
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'Failed to create property.')
+    }
+  }
+
+  async function handleDeleteProperty() {
+    if (!propertyPendingDelete) {
+      return
+    }
+
+    const property = propertyPendingDelete
+
+    try {
+      setDeletingPropertyId(property.id)
+      setDeleteMessage(null)
+
+      await deleteProperty(property.id)
+
+      const nextPage =
+        properties.length === 1 && currentPage > 1
+          ? currentPage - 1
+          : currentPage
+
+      if (nextPage !== currentPage) {
+        setCurrentPage(nextPage)
+      } else {
+        const refreshedProperties = await getProperties(undefined, {
+          search: debouncedSearchTerm,
+          city: debouncedFilters.city,
+          propertyTypeId: debouncedFilters.propertyTypeId,
+          propertyStatusId: debouncedFilters.propertyStatusId,
+          minPrice: debouncedFilters.minPrice,
+          maxPrice: debouncedFilters.maxPrice,
+          page: nextPage,
+          pageSize: propertiesPageSize,
+        })
+
+        setProperties(refreshedProperties.items)
+        setPagination(refreshedProperties)
+        setCityOptions((current) => getUniqueCities(refreshedProperties.items, current))
+      }
+
+      setPropertyPendingDelete(null)
+      setDeleteMessage({ text: 'Property deleted successfully.', type: 'success' })
+    } catch (error) {
+      setDeleteMessage({
+        text: error instanceof Error ? error.message : 'Failed to delete property.',
+        type: 'error',
+      })
+    } finally {
+      setDeletingPropertyId(null)
     }
   }
 
@@ -624,6 +677,12 @@ export default function PropertiesPage() {
       </section>
 
       <section className="data-panel" aria-live="polite">
+        {deleteMessage && (
+          <div className={`table-message table-message-${deleteMessage.type}`}>
+            <span>{deleteMessage.text}</span>
+          </div>
+        )}
+
         {loadState === 'loading' && (
           <div className="table-state">
             <p>Loading properties...</p>
@@ -651,6 +710,7 @@ export default function PropertiesPage() {
                   <th>Price</th>
                   <th>City</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -661,6 +721,19 @@ export default function PropertiesPage() {
                     <td data-label="City">{property.city}</td>
                     <td data-label="Status">
                       <span className="status-pill">{property.propertyStatus?.name ?? 'Unknown'}</span>
+                    </td>
+                    <td data-label="Actions">
+                      <button
+                        type="button"
+                        className="table-action-danger"
+                        onClick={() => {
+                          setDeleteMessage(null)
+                          setPropertyPendingDelete(property)
+                        }}
+                        disabled={deletingPropertyId === property.id}
+                      >
+                        {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -704,6 +777,44 @@ export default function PropertiesPage() {
           </div>
         )}
       </section>
+
+      {propertyPendingDelete && (
+        <div className="dialog-backdrop" role="presentation">
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-property-title"
+          >
+            <div>
+              <span className="panel-label">Confirm</span>
+              <h2 id="delete-property-title">Delete Property</h2>
+            </div>
+            <p>
+              Are you sure you want to delete <strong>{propertyPendingDelete.title}</strong>? This action cannot be
+              undone.
+            </p>
+            <div className="confirm-dialog-actions">
+              <button
+                type="button"
+                className="dialog-button-secondary"
+                onClick={() => setPropertyPendingDelete(null)}
+                disabled={deletingPropertyId === propertyPendingDelete.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="dialog-button-danger"
+                onClick={() => void handleDeleteProperty()}
+                disabled={deletingPropertyId === propertyPendingDelete.id}
+              >
+                {deletingPropertyId === propertyPendingDelete.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
