@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   getProperties,
@@ -17,6 +17,14 @@ const propertyPinIcon = L.divIcon({
   iconSize: [30, 42],
   iconAnchor: [15, 42],
   popupAnchor: [0, -38],
+})
+
+const selectedPropertyPinIcon = L.divIcon({
+  className: 'property-pin-icon property-pin-icon-selected',
+  html: '<span class="property-pin property-pin-selected" aria-hidden="true"></span>',
+  iconSize: [38, 52],
+  iconAnchor: [19, 52],
+  popupAnchor: [0, -48],
 })
 
 const tiranaCenter: [number, number] = [41.3275, 19.8187]
@@ -48,6 +56,8 @@ export default function MapPage() {
   const [filters, setFilters] = useState<MapFilterState>(initialMapFilters)
   const [loadState, setLoadState] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null)
+  const markerRefs = useRef<Record<number, L.Marker | null>>({})
 
   useEffect(() => {
     const controller = new AbortController()
@@ -126,6 +136,17 @@ export default function MapPage() {
     [properties],
   )
 
+  const selectedProperty = useMemo(
+    () => markerProperties.find((property) => property.id === selectedPropertyId) ?? null,
+    [markerProperties, selectedPropertyId],
+  )
+
+  useEffect(() => {
+    if (selectedPropertyId && !selectedProperty) {
+      setSelectedPropertyId(null)
+    }
+  }, [selectedProperty, selectedPropertyId])
+
   function updateFilter(field: keyof MapFilterState, value: string) {
     setFilters((current) => ({
       ...current,
@@ -135,6 +156,14 @@ export default function MapPage() {
 
   function resetFilters() {
     setFilters(initialMapFilters)
+  }
+
+  function selectProperty(property: Property) {
+    if (typeof property.latitude !== 'number' || typeof property.longitude !== 'number') {
+      return
+    }
+
+    setSelectedPropertyId(property.id)
   }
 
   return (
@@ -205,37 +234,103 @@ export default function MapPage() {
         </div>
       )}
 
-      <section className="map-panel">
-        <MapContainer
-          center={tiranaCenter}
-          zoom={12}
-          scrollWheelZoom
-          className="property-map"
-          aria-label="Property locations map"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {markerProperties.map((property) => (
-            <Marker
-              key={property.id}
-              icon={propertyPinIcon}
-              position={[property.latitude as number, property.longitude as number]}
-            >
-              <Popup>
-                <div className="map-popup">
-                  <strong>{property.title}</strong>
-                  <span>{currencyFormatter.format(property.price)}</span>
-                  <span>{property.city}</span>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+      <section className="map-sync-layout">
+        <aside className="map-property-list" aria-label="Map property list">
+          {loadState === 'loading' && <p className="map-list-state">Loading properties...</p>}
+
+          {loadState === 'success' && markerProperties.length === 0 && (
+            <p className="map-list-state">No mapped properties found.</p>
+          )}
+
+          {loadState === 'success' &&
+            markerProperties.map((property) => (
+              <button
+                key={property.id}
+                type="button"
+                className={`map-property-item ${
+                  selectedPropertyId === property.id ? 'map-property-item-active' : ''
+                }`}
+                onClick={() => selectProperty(property)}
+                aria-pressed={selectedPropertyId === property.id}
+              >
+                <span>{property.title}</span>
+                <strong>{currencyFormatter.format(property.price)}</strong>
+                <small>{property.city}</small>
+              </button>
+            ))}
+        </aside>
+
+        <section className="map-panel">
+          <MapContainer
+            center={tiranaCenter}
+            zoom={12}
+            scrollWheelZoom
+            className="property-map"
+            aria-label="Property locations map"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapSelectionController selectedProperty={selectedProperty} markerRefs={markerRefs} />
+            {markerProperties.map((property) => (
+              <Marker
+                key={property.id}
+                ref={(marker) => {
+                  markerRefs.current[property.id] = marker
+                }}
+                icon={selectedPropertyId === property.id ? selectedPropertyPinIcon : propertyPinIcon}
+                position={[property.latitude as number, property.longitude as number]}
+                eventHandlers={{
+                  click: () => setSelectedPropertyId(property.id),
+                }}
+              >
+                <Popup>
+                  <div className="map-popup">
+                    <strong>{property.title}</strong>
+                    <span>{currencyFormatter.format(property.price)}</span>
+                    <span>{property.city}</span>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </section>
       </section>
     </section>
   )
+}
+
+function MapSelectionController({
+  selectedProperty,
+  markerRefs,
+}: {
+  selectedProperty: Property | null
+  markerRefs: MutableRefObject<Record<number, L.Marker | null>>
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (
+      !selectedProperty ||
+      typeof selectedProperty.latitude !== 'number' ||
+      typeof selectedProperty.longitude !== 'number'
+    ) {
+      return
+    }
+
+    const position: [number, number] = [selectedProperty.latitude, selectedProperty.longitude]
+    map.flyTo(position, Math.max(map.getZoom(), 15), {
+      animate: true,
+      duration: 0.75,
+    })
+
+    window.setTimeout(() => {
+      markerRefs.current[selectedProperty.id]?.openPopup()
+    }, 300)
+  }, [map, markerRefs, selectedProperty])
+
+  return null
 }
 
 function getUniqueCities(properties: Property[], existingCities: string[] = []) {
