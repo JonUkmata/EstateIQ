@@ -119,7 +119,22 @@ public class PropertyServiceTests
         var property = await SeedPropertyAsync(dbContext, propertyStatusId: 2);
         var service = CreateService(dbContext);
 
-        await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+
+        Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", exception.Message);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_UnderContractProperty_ThrowsBusinessRuleException()
+    {
+        await using var dbContext = CreateContext();
+        await SeedReferenceDataAsync(dbContext);
+        var property = await SeedPropertyAsync(dbContext, propertyStatusId: 4);
+        var service = CreateService(dbContext);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+
+        Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", exception.Message);
     }
 
     [Fact]
@@ -285,6 +300,13 @@ public class PropertyServiceTests
             {
                 Id = 3,
                 Name = "Rented",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            },
+            new PropertyStatus
+            {
+                Id = 4,
+                Name = "Under Contract",
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             });

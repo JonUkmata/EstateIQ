@@ -124,6 +124,46 @@ public class PropertiesControllerTests
         Assert.Equal(19.8187m, result.Longitude);
     }
 
+    [Fact]
+    public async Task DeleteProperty_ExistingProperty_ReturnsNoContentAndDeletesProperty()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyId}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/properties/{propertyId}");
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteProperty_MissingProperty_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync("/api/properties/999");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteProperty_UnderContractProperty_ReturnsConflict()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync(propertyStatusId: 6);
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyId}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", await response.Content.ReadAsStringAsync());
+    }
+
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();
@@ -171,7 +211,7 @@ public class PropertiesControllerTests
             await SeedReferenceDataAsync(dbContext);
         }
 
-        public async Task<int> SeedPropertyAsync()
+        public async Task<int> SeedPropertyAsync(int propertyStatusId = 1)
         {
             await ResetDatabaseAsync();
 
@@ -191,7 +231,7 @@ public class PropertiesControllerTests
                 Floors = 1,
                 YearBuilt = 2021,
                 PropertyTypeId = 1,
-                PropertyStatusId = 1,
+                PropertyStatusId = propertyStatusId,
                 CompanyId = 1,
                 AgentId = 1,
                 Address = "Rruga e Kavajes",
@@ -280,6 +320,17 @@ public class PropertiesControllerTests
                 {
                     Id = 1,
                     Name = "For Sale",
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+            }
+
+            if (!await dbContext.PropertyStatuses.AnyAsync(propertyStatus => propertyStatus.Id == 6))
+            {
+                dbContext.PropertyStatuses.Add(new PropertyStatus
+                {
+                    Id = 6,
+                    Name = "Under Contract",
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 });
