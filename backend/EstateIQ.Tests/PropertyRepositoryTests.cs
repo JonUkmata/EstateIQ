@@ -1,4 +1,5 @@
 using EstateIQ.Data;
+using EstateIQ.DTOs;
 using EstateIQ.Models;
 using EstateIQ.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -167,6 +168,39 @@ public class PropertyRepositoryTests
 
         Assert.Single(results);
         Assert.Equal("City Office", results[0].Title);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_CombinesFiltersAndPagination()
+    {
+        await using var dbContext = CreateContext();
+        await SeedReferenceDataAsync(dbContext);
+        dbContext.Properties.AddRange(
+            BuildProperty("Renovated Apartment", "Tirane", 120000m, "Bright city home"),
+            BuildProperty("Large Apartment", "Tirane", 220000m, "Renovated luxury home"),
+            BuildProperty("Beach Apartment", "Durres", 130000m, "Renovated coast home"));
+        await dbContext.SaveChangesAsync();
+
+        var repository = new PropertyRepository(dbContext);
+
+        var (items, totalCount) = await repository.GetFilteredAsync(new PropertyQueryParameters
+        {
+            City = "tirane",
+            PropertyTypeId = 1,
+            PropertyStatusId = 1,
+            MinPrice = 100000m,
+            MaxPrice = 150000m,
+            Search = "renovated",
+            Page = 1,
+            PageSize = 10
+        });
+
+        var itemList = items.ToList();
+        Assert.Equal(1, totalCount);
+        Assert.Single(itemList);
+        Assert.Equal("Renovated Apartment", itemList[0].Title);
+        Assert.NotNull(itemList[0].PropertyType);
+        Assert.NotNull(itemList[0].PropertyStatus);
     }
 
     private static AppDbContext CreateContext()

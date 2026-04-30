@@ -161,7 +161,7 @@ public class PropertyService(
             if (!CanDeleteProperty(property))
             {
                 _logger.LogWarning("Attempt to delete protected property {PropertyId} with status {Status}.", id, property.PropertyStatus.Name);
-                throw new BusinessRuleException("Sold or rented properties cannot be deleted.");
+                throw new BusinessRuleException("Sold, rented, or under-contract properties cannot be deleted.");
             }
 
             var deleted = await _propertyRepository.DeleteAsync(id);
@@ -245,9 +245,29 @@ public class PropertyService(
         {
             Items = detailedItems.ToList(),
             TotalCount = totalCount,
-            PageNumber = pageNumber,
+            Page = pageNumber,
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
+    }
+
+    /// <summary>
+    /// Gets a filtered and paginated list of properties.
+    /// </summary>
+    public async Task<PagedResult<PropertyDto>> GetFilteredAsync(PropertyQueryParameters queryParameters)
+    {
+        ArgumentNullException.ThrowIfNull(queryParameters);
+        ValidateQueryParameters(queryParameters);
+
+        var (items, totalCount) = await _propertyRepository.GetFilteredAsync(queryParameters);
+
+        return new PagedResult<PropertyDto>
+        {
+            Items = _mapper.Map<IEnumerable<PropertyDto>>(items).ToList(),
+            TotalCount = totalCount,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)queryParameters.PageSize)
         };
     }
 
@@ -330,6 +350,7 @@ public class PropertyService(
 
     private const string SoldStatusName = "Sold";
     private const string RentedStatusName = "Rented";
+    private const string UnderContractStatusName = "Under Contract";
 
     private async Task<IEnumerable<PropertyDto>> MapDetailedDtosAsync(IEnumerable<int> propertyIds)
     {
@@ -384,6 +405,47 @@ public class PropertyService(
             case UpdatePropertyDto updatePropertyDto:
                 AddFutureYearError(updatePropertyDto.YearBuilt, errors, nameof(UpdatePropertyDto.YearBuilt));
                 break;
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateQueryParameters(PropertyQueryParameters queryParameters)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (queryParameters.Page <= 0)
+        {
+            errors[nameof(PropertyQueryParameters.Page)] = ["Page must be greater than zero."];
+        }
+
+        if (queryParameters.PageSize <= 0)
+        {
+            errors[nameof(PropertyQueryParameters.PageSize)] = ["PageSize must be greater than zero."];
+        }
+        else if (queryParameters.PageSize > 100)
+        {
+            errors[nameof(PropertyQueryParameters.PageSize)] = ["PageSize must be less than or equal to 100."];
+        }
+
+        if (queryParameters.MinPrice.HasValue && queryParameters.MinPrice.Value < 0)
+        {
+            errors[nameof(PropertyQueryParameters.MinPrice)] = ["MinPrice cannot be negative."];
+        }
+
+        if (queryParameters.MaxPrice.HasValue && queryParameters.MaxPrice.Value < 0)
+        {
+            errors[nameof(PropertyQueryParameters.MaxPrice)] = ["MaxPrice cannot be negative."];
+        }
+
+        if (queryParameters.MinPrice.HasValue &&
+            queryParameters.MaxPrice.HasValue &&
+            queryParameters.MinPrice.Value > queryParameters.MaxPrice.Value)
+        {
+            errors[nameof(PropertyQueryParameters.MinPrice)] = ["MinPrice cannot be greater than MaxPrice."];
         }
 
         if (errors.Count > 0)
@@ -485,7 +547,9 @@ public class PropertyService(
 
     private static bool CanDeleteProperty(Property property)
     {
-        return !IsStatus(property, SoldStatusName) && !IsStatus(property, RentedStatusName);
+        return !IsStatus(property, SoldStatusName) &&
+               !IsStatus(property, RentedStatusName) &&
+               !IsStatus(property, UnderContractStatusName);
     }
 
     private static bool IsStatus(Property property, string statusName)

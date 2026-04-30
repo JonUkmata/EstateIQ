@@ -57,14 +57,16 @@ This schema defines the initial SQL Server structure for the EstateIQ property m
 - `IX_PropertyTypes_Name` unique
 - `IX_PropertyStatuses_Name` unique
 
-## Migration Artifacts
+## Migration Source Of Truth
 
 - EF Core migration:
   [backend/EstateIQ/Migrations/20260422084422_InitialCreate.cs](../backend/EstateIQ/Migrations/20260422084422_InitialCreate.cs)
-- Apply script:
-  [docs/property-management-initial-create.sql](./property-management-initial-create.sql)
-- Rollback script:
-  [docs/property-management-rollback.sql](./property-management-rollback.sql)
+- EF Core model snapshot:
+  [backend/EstateIQ/Migrations/AppDbContextModelSnapshot.cs](../backend/EstateIQ/Migrations/AppDbContextModelSnapshot.cs)
+- Runtime model configuration:
+  [backend/EstateIQ/Data/AppDbContext.cs](../backend/EstateIQ/Data/AppDbContext.cs)
+
+Raw SQL create/rollback scripts are intentionally not tracked in `docs` because EF Core migrations are the source of truth.
 
 ## Usage
 
@@ -72,10 +74,4 @@ Apply the EF migration:
 
 ```powershell
 dotnet ef database update --project backend/EstateIQ/EstateIQ.csproj --startup-project backend/EstateIQ/EstateIQ.csproj
-```
-
-Or execute the generated SQL script in SSMS:
-
-```text
-docs/property-management-initial-create.sql
 ```
