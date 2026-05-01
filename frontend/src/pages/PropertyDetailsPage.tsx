@@ -101,7 +101,7 @@ export default function PropertyDetailsPage() {
             <div><dt>Price</dt><dd>{currencyFormatter.format(property.price)}</dd></div>
             <div><dt>Bedrooms</dt><dd>{property.bedrooms ?? '-'}</dd></div>
             <div><dt>Bathrooms</dt><dd>{property.bathrooms ?? '-'}</dd></div>
-            <div><dt>Area</dt><dd>{property.area} m²</dd></div>
+            <div><dt>Area</dt><dd>{property.area} m2</dd></div>
           </dl>
         </article>
 
