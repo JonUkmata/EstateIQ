@@ -4,15 +4,15 @@
 
 **Project Name:** EstateIQ  
 **Version:** 1.0.0  
-**Status:** In Development  
+**Status:** Sprint 3 completed, ready for merge to main  
 **Start Date:** 2026-04-14  
-**Last Updated:** 2026-04-26  
+**Last Updated:** 2026-05-01  
 
 ## Project Description
 
-EstateIQ is a full-stack real estate management system for managing property listings, companies, agents, property types, property statuses, and location-ready property data. The current sprint work focuses on property management APIs and frontend workflows. The next planned map work depends on persisted `Latitude` and `Longitude` values returned by the Properties API.
+EstateIQ is a full-stack real estate management system for managing property listings, companies, agents, property types, property statuses, and map-ready property location data.
 
-The project uses a layered backend architecture with controllers, services, repositories, DTOs, AutoMapper profiles, Entity Framework Core models, and integration/unit tests. The frontend is a React/Vite application that consumes the backend API through a Vite `/api` proxy during local development.
+The project now includes the full Sprint 3 property discovery workflow: paginated and filtered property listings, create/edit/delete flows, property details, and a map page that displays properties with persisted coordinates. The backend follows a layered architecture with controllers, services, repositories, DTOs, AutoMapper profiles, EF Core models, seeders, and automated tests. The frontend is a React/Vite application that consumes the backend API through a local Vite `/api` proxy.
 
 ## Technology Stack
 
@@ -45,57 +45,58 @@ Swashbuckle.AspNetCore 6.6.2
 - **Test Framework:** xUnit 2.9.2
 - **Integration Testing:** `Microsoft.AspNetCore.Mvc.Testing` 9.0.10
 - **Test Database:** `Microsoft.EntityFrameworkCore.InMemory` 9.0.0
-- **Current Test Result:** 49 passing tests
+- **Current Test Result:** 59 passing tests
 
 ### Frontend
 
 - **Framework:** React 19.2.5
-- **Build Tool:** Vite 8.0.4
+- **Build Tool:** Vite 8.x
 - **Language:** TypeScript 6.0.2
 - **Routing:** React Router DOM 7.14.1
+- **Map UI:** Leaflet 1.9.4 and React Leaflet 5.0.0
 - **Package Manager:** npm with committed `package-lock.json`
 
 ### Not Currently Installed
 
-The request example mentions Serilog and FluentValidation, but the current repository does not include those packages. Logging currently uses built-in ASP.NET Core console logging, and validation currently uses data annotations plus custom service validation.
+The repository does not currently include Serilog or FluentValidation. Logging uses built-in ASP.NET Core console logging, and validation uses data annotations plus custom service validation.
 
 ## Solution Structure
 
 ```text
 EstateIQ/
-├── backend/
-│   ├── EstateIQ/
-│   │   ├── Controllers/        # API controllers
-│   │   ├── Data/               # DbContext, design-time factory, seeders, env loader
-│   │   ├── DTOs/               # Request/response contracts
-│   │   ├── Exceptions/         # Custom domain/application exceptions
-│   │   ├── Interfaces/         # Service and repository contracts
-│   │   ├── Mappings/           # AutoMapper profile
-│   │   ├── Migrations/         # EF Core migrations
-│   │   ├── Models/             # Entity models
-│   │   ├── Repositories/       # EF Core data access
-│   │   ├── Services/           # Business logic
-│   │   ├── Program.cs          # API startup, DI, middleware, seed execution
-│   │   └── EstateIQ.csproj
-│   └── EstateIQ.Tests/
-│       ├── *Tests.cs           # Repository, service, controller, and seeder tests
-│       └── EstateIQ.Tests.csproj
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── layouts/
-│   │   ├── pages/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   └── styles.css
-│   ├── package.json
-│   └── vite.config.ts
-├── docs/                       # Supporting SQL/schema/workflow docs
-│   └── sprints/                # Sprint summaries and planning handoff notes
-├── PROJECT-OVERVIEW.md
-├── DEVELOPMENT-LOG.md
-├── README.md
-└── EstateIQ.sln
+|-- backend/
+|   |-- EstateIQ/
+|   |   |-- Controllers/        # API controllers
+|   |   |-- Data/               # DbContext, design-time factory, seeders, env loader
+|   |   |-- DTOs/               # Request/response contracts
+|   |   |-- Exceptions/         # Custom domain/application exceptions
+|   |   |-- Interfaces/         # Service and repository contracts
+|   |   |-- Mappings/           # AutoMapper profile
+|   |   |-- Migrations/         # EF Core migrations
+|   |   |-- Models/             # Entity models
+|   |   |-- Repositories/       # EF Core data access
+|   |   |-- Services/           # Business logic
+|   |   |-- Program.cs          # API startup, DI, middleware, seed execution
+|   |   `-- EstateIQ.csproj
+|   `-- EstateIQ.Tests/
+|       |-- *Tests.cs           # Repository, service, controller, and seeder tests
+|       `-- EstateIQ.Tests.csproj
+|-- frontend/
+|   |-- src/
+|   |   |-- components/
+|   |   |-- layouts/
+|   |   |-- pages/
+|   |   |-- routes/
+|   |   |-- services/
+|   |   `-- styles.css
+|   |-- package.json
+|   `-- vite.config.ts
+|-- docs/
+|   `-- sprints/                # Sprint summaries and planning handoff notes
+|-- PROJECT-OVERVIEW.md
+|-- DEVELOPMENT-LOG.md
+|-- README.md
+`-- EstateIQ.sln
 ```
 
 ## Database Schema Overview
@@ -158,20 +159,26 @@ VITE_API_BASE_URL=""
 - Companies dropdown endpoint: `GET /api/companies`
 - Agents dropdown endpoint: `GET /api/agents`
 - Agents by company filter: `GET /api/agents?companyId={id}`
-- Properties list endpoint: `GET /api/properties`
+- Paginated and filtered properties endpoint: `GET /api/properties`
 - Property details endpoint: `GET /api/properties/{id}`
 - Property creation endpoint: `POST /api/properties`
-- Properties frontend page with list, create form, dropdowns, validations, and API refresh after submit
-- Latitude/longitude persistence and API return values for future map features
+- Property update endpoint: `PUT /api/properties/{id}`
+- Property delete endpoint: `DELETE /api/properties/{id}`
+- Properties frontend page with search, filters, pagination, create form, edit/details links, and delete confirmation
+- Property details page at `/properties/:id`
+- Property edit page at `/properties/:id/edit`
+- Property map page at `/map` using Leaflet markers from persisted latitude/longitude values
+- Latitude/longitude persistence and API return values for map visualization
 - Automatic seed data for property types, statuses, companies, agents, agent-company relationships, and demo properties
+- Template `/weatherforecast` endpoint removed during Sprint 3 stabilization
 
 ### Planned Features
 
-- Sprint 3 map visualization using persisted property coordinates
-- Property editing workflow
-- Property search and filtering UI
 - Authentication and authorization
 - Agent/company management pages
+- Dashboard metrics backed by real API data
+- ML price prediction API integration
+- Geocoding or map-based coordinate picker
 - Production deployment configuration
 - Stronger frontend test coverage
 
@@ -232,6 +239,9 @@ Expected frontend URL:
 | --- | --- |
 | Frontend | `http://localhost:5173` |
 | Properties Page | `http://localhost:5173/properties` |
+| Property Details | `http://localhost:5173/properties/{id}` |
+| Edit Property | `http://localhost:5173/properties/{id}/edit` |
+| Property Map | `http://localhost:5173/map` |
 | Backend API | `http://localhost:5222` |
 | Swagger UI | `http://localhost:5222/swagger` |
 | API Health | `http://localhost:5222/api/test` |
@@ -245,7 +255,7 @@ Expected frontend URL:
 
 ## Contact Info
 
-Use the repository issues, pull requests, or the team communication channel for project questions. Keep implementation decisions and ticket completion notes in `DEVELOPMENT-LOG.md`.
+Use the repository issues, pull requests, or the team communication channel for project questions. Keep implementation decisions and ticket completion notes in `DEVELOPMENT-LOG.md` when that file is active in the working tree.
 
 ## Sprint Notes
 
@@ -253,3 +263,19 @@ Sprint summaries live under `docs/sprints/`:
 
 - `docs/sprints/sprint-1.md`
 - `docs/sprints/sprint-2.md`
+- `docs/sprints/sprint-3.md`
+
+## Latest Verification
+
+Last verified on 2026-05-01:
+
+```text
+dotnet test backend\EstateIQ.Tests\EstateIQ.Tests.csproj
+Result: 59/59 passing
+
+dotnet build backend\EstateIQ\EstateIQ.csproj --configuration Release
+Result: passed, 0 warnings, 0 errors
+
+npm run build
+Result: passed
+```

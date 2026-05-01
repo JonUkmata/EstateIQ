@@ -67,6 +67,11 @@ public interface IPropertyService
         bool ascending = true);
 
     /// <summary>
+    /// Gets a filtered and paginated list of properties.
+    /// </summary>
+    Task<PagedResult<PropertyDto>> GetFilteredAsync(PropertyQueryParameters queryParameters);
+
+    /// <summary>
     /// Changes the status of a property.
     /// </summary>
     Task<PropertyDto> ChangeStatusAsync(int id, int newStatusId);

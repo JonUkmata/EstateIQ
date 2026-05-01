@@ -1,3 +1,4 @@
+using EstateIQ.DTOs;
 using EstateIQ.Models;
 
 namespace EstateIQ.Interfaces;
@@ -75,6 +76,11 @@ public interface IPropertyRepository
         int pageSize,
         string? sortBy = null,
         bool ascending = true);
+
+    /// <summary>
+    /// Gets a filtered and paginated list of properties with related entities included.
+    /// </summary>
+    Task<(IEnumerable<Property> Items, int TotalCount)> GetFilteredAsync(PropertyQueryParameters queryParameters);
 
     /// <summary>
     /// Checks whether a property exists.

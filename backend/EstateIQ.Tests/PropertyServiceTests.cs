@@ -119,7 +119,22 @@ public class PropertyServiceTests
         var property = await SeedPropertyAsync(dbContext, propertyStatusId: 2);
         var service = CreateService(dbContext);
 
-        await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+
+        Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", exception.Message);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_UnderContractProperty_ThrowsBusinessRuleException()
+    {
+        await using var dbContext = CreateContext();
+        await SeedReferenceDataAsync(dbContext);
+        var property = await SeedPropertyAsync(dbContext, propertyStatusId: 4);
+        var service = CreateService(dbContext);
+
+        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(property.Id));
+
+        Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", exception.Message);
     }
 
     [Fact]
@@ -153,6 +168,35 @@ public class PropertyServiceTests
         Assert.Equal(2, result.Items.Count);
         Assert.Equal(2, result.TotalPages);
         Assert.Equal(["Property 2", "Property 3"], result.Items.Select(x => x.Title).ToArray());
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_ReturnsFilteredPageData()
+    {
+        await using var dbContext = CreateContext();
+        await SeedReferenceDataAsync(dbContext);
+        await SeedPropertyAsync(dbContext, title: "Modern Apartment", description: "Freshly renovated apartment", price: 120000m);
+        await SeedPropertyAsync(dbContext, title: "Luxury Villa", description: "Renovated villa", price: 450000m);
+        await SeedPropertyAsync(dbContext, title: "Office Space", description: "Business center", price: 140000m);
+        var service = CreateService(dbContext);
+
+        var result = await service.GetFilteredAsync(new PropertyQueryParameters
+        {
+            City = "Tirane",
+            PropertyTypeId = 1,
+            PropertyStatusId = 1,
+            MinPrice = 100000m,
+            MaxPrice = 150000m,
+            Search = "renovated",
+            Page = 1,
+            PageSize = 10
+        });
+
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(1, result.Page);
+        Assert.Equal(10, result.PageSize);
+        Assert.Single(result.Items);
+        Assert.Equal("Modern Apartment", result.Items.Single().Title);
     }
 
     [Fact]
@@ -256,6 +300,13 @@ public class PropertyServiceTests
             {
                 Id = 3,
                 Name = "Rented",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            },
+            new PropertyStatus
+            {
+                Id = 4,
+                Name = "Under Contract",
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             });
