@@ -10,6 +10,7 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from '../services/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const propertyPinIcon = L.divIcon({
   className: 'property-pin-icon',
@@ -236,10 +237,15 @@ export default function MapPage() {
 
       <section className="map-sync-layout">
         <aside className="map-property-list" aria-label="Map property list">
-          {loadState === 'loading' && <p className="map-list-state">Loading properties...</p>}
+          {loadState === 'loading' && (
+            <p className="map-list-state state-with-spinner">
+              <LoadingSpinner label="Loading map properties" />
+              <span>Loading properties...</span>
+            </p>
+          )}
 
           {loadState === 'success' && markerProperties.length === 0 && (
-            <p className="map-list-state">No mapped properties found.</p>
+            <p className="map-list-state">No properties with valid map coordinates match these filters.</p>
           )}
 
           {loadState === 'success' &&

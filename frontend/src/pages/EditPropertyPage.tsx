@@ -13,6 +13,7 @@ import {
   type PropertyType,
   updateProperty,
 } from '../services/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 type LoadState = 'loading' | 'success' | 'error'
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
@@ -177,7 +178,10 @@ export default function EditPropertyPage() {
       <section className="content-stack">
         <div className="section-heading">
           <h1>Edit Property</h1>
-          <span className="response-badge response-badge-loading">Loading</span>
+          <span className="response-badge response-badge-loading state-with-spinner">
+            <LoadingSpinner label="Loading property form" />
+            <span>Loading</span>
+          </span>
         </div>
       </section>
     )
