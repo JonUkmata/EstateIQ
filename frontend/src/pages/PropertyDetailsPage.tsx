@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getPropertyById, type PropertyDetails } from '../services/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 type LoadState = 'loading' | 'success' | 'error'
 
@@ -52,7 +53,10 @@ export default function PropertyDetailsPage() {
       <section className="content-stack">
         <div className="section-heading">
           <h1>Property Details</h1>
-          <span className="response-badge response-badge-loading">Loading</span>
+          <span className="response-badge response-badge-loading state-with-spinner">
+            <LoadingSpinner label="Loading property details" />
+            <span>Loading</span>
+          </span>
         </div>
       </section>
     )

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import PagePlaceholder from '../components/PagePlaceholder'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { getApiTestMessage } from '../services/api'
 
 export default function HomePage() {
@@ -63,7 +64,16 @@ export default function HomePage() {
           </span>
         </div>
 
-        <pre className="response-output">{apiResponse}</pre>
+        <pre className="response-output">
+          {apiStatus === 'loading' ? (
+            <span className="state-with-spinner">
+              <LoadingSpinner label="Loading backend response" />
+              <span>{apiResponse}</span>
+            </span>
+          ) : (
+            apiResponse
+          )}
+        </pre>
       </article>
     </PagePlaceholder>
   )

@@ -16,6 +16,7 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from '../services/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 type LoadState = 'loading' | 'success' | 'error'
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
@@ -686,7 +687,10 @@ export default function PropertiesPage() {
 
         {loadState === 'loading' && (
           <div className="table-state">
-            <p>Loading properties...</p>
+            <p className="state-with-spinner">
+              <LoadingSpinner label="Loading properties" />
+              <span>Loading properties...</span>
+            </p>
           </div>
         )}
 
@@ -698,7 +702,7 @@ export default function PropertiesPage() {
 
         {loadState === 'success' && properties.length === 0 && (
           <div className="table-state">
-            <p>No properties found.</p>
+            <p>No properties match the current filters.</p>
           </div>
         )}
 
