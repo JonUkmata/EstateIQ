@@ -878,6 +878,107 @@ a {
   text-align: right;
 }
 
+.property-images-panel {
+  padding: 1.35rem;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 38px rgba(57, 86, 68, 0.1);
+}
+
+.property-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.property-image-card {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 14px;
+  background: rgba(248, 251, 246, 0.94);
+}
+
+.property-image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: rgba(211, 235, 217, 0.45);
+}
+
+.property-image-card figcaption {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.72rem;
+}
+
+.property-image-card figcaption span {
+  overflow: hidden;
+  color: #163126;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.property-image-card figcaption small {
+  color: #4a7861;
+  font-size: 0.8rem;
+}
+
+.image-empty-state {
+  padding: 1.1rem;
+  border: 1px dashed rgba(22, 49, 38, 0.18);
+  border-radius: 16px;
+  background: rgba(245, 249, 243, 0.72);
+  color: #486558;
+}
+
+.image-empty-state p {
+  margin: 0;
+}
+
+.image-upload-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.selected-image-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.selected-image-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(22, 49, 38, 0.1);
+  border-radius: 12px;
+  background: rgba(248, 251, 246, 0.86);
+}
+
+.selected-image-list span {
+  overflow: hidden;
+  color: #163126;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-image-list small {
+  color: #4a7861;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 .table-action-danger:disabled {
   cursor: not-allowed;
   opacity: 0.62;

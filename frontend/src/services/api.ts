@@ -7,6 +7,7 @@ import type {
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from '../types/auth'
+import type { PropertyImage, UploadedPropertyImage } from '../types/files'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 let accessToken: string | null = null
@@ -17,6 +18,14 @@ export function setApiAccessToken(token: string | null) {
 
 function buildApiUrl(path: string) {
   return `${apiBaseUrl}${path}`
+}
+
+export function buildFileUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) {
+    return path
+  }
+
+  return buildApiUrl(path.startsWith('/') ? path : `/${path}`)
 }
 
 async function parseErrorDetails(response: Response) {
@@ -182,6 +191,7 @@ export type PropertyDetails = Property & {
     mobile?: string | null
     isActive: boolean
   }
+  images: PropertyImage[]
 }
 
 export type PropertyType = {
@@ -364,6 +374,20 @@ export async function updateProperty(id: number, payload: UpdatePropertyPayload)
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function getPropertyImages(propertyId: number, signal?: AbortSignal) {
+  return fetchJson<PropertyImage[]>(`/api/properties/${propertyId}/images`, { signal })
+}
+
+export async function uploadPropertyImages(propertyId: number, files: File[]) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  return fetchJson<UploadedPropertyImage[]>(`/api/properties/${propertyId}/images`, {
+    method: 'POST',
+    body: formData,
   })
 }
 

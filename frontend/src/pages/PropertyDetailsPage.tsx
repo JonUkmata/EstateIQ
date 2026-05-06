@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
-import { getPropertyById, type PropertyDetails } from '../services/api'
+import { getPropertyById, getPropertyImages, type PropertyDetails } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+import PropertyImageGallery from '../components/properties/PropertyImageGallery'
+import PropertyImageUpload from '../components/properties/PropertyImageUpload'
+import type { PropertyImage } from '../types/files'
 
 type LoadState = 'loading' | 'success' | 'error'
 
@@ -17,7 +20,11 @@ export default function PropertyDetailsPage() {
   const { id } = useParams()
   const { hasPermission } = useAuth()
   const canEditProperty = hasPermission(Permissions.EditProperty)
+  const canUploadPropertyImages = hasPermission(Permissions.UploadPropertyImages)
   const [property, setProperty] = useState<PropertyDetails | null>(null)
+  const [images, setImages] = useState<PropertyImage[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [imagesError, setImagesError] = useState('')
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -37,7 +44,23 @@ export default function PropertyDetailsPage() {
         setErrorMessage('')
         const result = await getPropertyById(parsedId, controller.signal)
         setProperty(result)
+        setImages(result.images ?? [])
         setLoadState('success')
+
+        setImagesLoading(true)
+        try {
+          const imageResult = await getPropertyImages(parsedId, controller.signal)
+          setImages(imageResult)
+          setImagesError('')
+        } catch (imageError) {
+          if (imageError instanceof DOMException && imageError.name === 'AbortError') {
+            return
+          }
+
+          setImagesError(imageError instanceof Error ? imageError.message : 'Failed to load property images.')
+        } finally {
+          setImagesLoading(false)
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
@@ -51,6 +74,24 @@ export default function PropertyDetailsPage() {
     void loadProperty()
     return () => controller.abort()
   }, [id])
+
+  async function refreshImages() {
+    const parsedId = Number(id)
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      return
+    }
+
+    try {
+      setImagesLoading(true)
+      setImagesError('')
+      const imageResult = await getPropertyImages(parsedId)
+      setImages(imageResult)
+    } catch (error) {
+      setImagesError(error instanceof Error ? error.message : 'Failed to refresh property images.')
+    } finally {
+      setImagesLoading(false)
+    }
+  }
 
   if (loadState === 'loading') {
     return (
@@ -137,6 +178,24 @@ export default function PropertyDetailsPage() {
           </dl>
         </article>
       </section>
+
+      {imagesError ? (
+        <section className="data-panel">
+          <div className="table-state table-state-error">
+            <p>{imagesError}</p>
+          </div>
+        </section>
+      ) : null}
+
+      <PropertyImageGallery images={images} isLoading={imagesLoading} />
+
+      {canUploadPropertyImages ? (
+        <PropertyImageUpload
+          propertyId={property.id}
+          currentImageCount={images.length}
+          onUploaded={refreshImages}
+        />
+      ) : null}
     </section>
   )
 }
