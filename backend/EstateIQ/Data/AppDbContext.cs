@@ -19,8 +19,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Property> Properties => Set<Property>();
 
+    public DbSet<User> Users => Set<User>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Users");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.FirstName)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.LastName)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Email)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.PasswordHash)
+                .IsRequired();
+
+            entity.Property(x => x.IsEmailConfirmed).HasDefaultValue(false);
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => x.Email)
+                .IsUnique()
+                .HasDatabaseName("IX_Users_Email");
+        });
+
         modelBuilder.Entity<Company>(entity =>
         {
             entity.ToTable("Companies");
