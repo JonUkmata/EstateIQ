@@ -37,4 +37,34 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
 
         return (items, totalCount);
     }
+
+    public Task<bool> EmailExistsAsync(string email)
+    {
+        return _dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.Email == email);
+    }
+
+    public Task<bool> CompanyExistsAsync(int companyId)
+    {
+        return _dbContext.Companies
+            .AsNoTracking()
+            .AnyAsync(company => company.Id == companyId);
+    }
+
+    public Task<Role?> GetRoleByNameAsync(string roleName)
+    {
+        return _dbContext.Roles
+            .AsNoTracking()
+            .SingleOrDefaultAsync(role => role.Name == roleName);
+    }
+
+    public async Task AddCompanyAdminAsync(User user, UserRole userRole, CompanyUser companyUser)
+    {
+        _dbContext.Users.Add(user);
+        _dbContext.UserRoles.Add(userRole);
+        _dbContext.CompanyUsers.Add(companyUser);
+
+        await _dbContext.SaveChangesAsync();
+    }
 }

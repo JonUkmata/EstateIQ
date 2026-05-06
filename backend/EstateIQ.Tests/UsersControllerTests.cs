@@ -111,6 +111,81 @@ public class UsersControllerTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateCompanyAdmin_WithRequiredPermissions_CreatesUserRoleAndCompanyLink()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompanyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers, Permissions.ManageCompanies);
+
+        var response = await client.PostAsJsonAsync("/api/users/company-admins", BuildCompanyAdminRequest());
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<CreateCompanyAdminResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("companyadmin@example.com", result!.Email);
+        Assert.Equal(Roles.CompanyAdmin, result.Role);
+        Assert.Equal(1, result.CompanyId);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await dbContext.Users.SingleAsync();
+        var userRole = await dbContext.UserRoles.Include(x => x.Role).SingleAsync();
+        var companyUser = await dbContext.CompanyUsers.SingleAsync();
+
+        Assert.True(user.IsActive);
+        Assert.True(user.IsEmailConfirmed);
+        Assert.NotEqual("Password123!", user.PasswordHash);
+        Assert.Equal(Roles.CompanyAdmin, userRole.Role.Name);
+        Assert.Equal(1, companyUser.CompanyId);
+        Assert.Equal(user.Id, companyUser.UserId);
+        Assert.Equal(Roles.CompanyAdmin, companyUser.RelationshipType);
+    }
+
+    [Fact]
+    public async Task CreateCompanyAdmin_WithoutManageCompaniesPermission_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompanyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers);
+
+        var response = await client.PostAsJsonAsync("/api/users/company-admins", BuildCompanyAdminRequest());
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateCompanyAdmin_InvalidCompany_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompanyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers, Permissions.ManageCompanies);
+
+        var request = BuildCompanyAdminRequest();
+        request.CompanyId = 999;
+        var response = await client.PostAsJsonAsync("/api/users/company-admins", request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateCompanyAdmin_DuplicateEmail_ReturnsConflict()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompanyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers, Permissions.ManageCompanies);
+        await client.PostAsJsonAsync("/api/users/company-admins", BuildCompanyAdminRequest());
+
+        var response = await client.PostAsJsonAsync("/api/users/company-admins", BuildCompanyAdminRequest());
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     private static void AddBearerToken(HttpClient client, params string[] permissions)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -130,6 +205,18 @@ public class UsersControllerTests
             },
             [Roles.Admin],
             permissions);
+    }
+
+    private static CreateCompanyAdminRequestDto BuildCompanyAdminRequest()
+    {
+        return new CreateCompanyAdminRequestDto
+        {
+            FirstName = "Company",
+            LastName = "Admin",
+            Email = "companyadmin@example.com",
+            Password = "Password123!",
+            CompanyId = 1
+        };
     }
 
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
@@ -204,6 +291,25 @@ public class UsersControllerTests
             dbContext.UserRoles.AddRange(
                 new UserRole { Id = Guid.NewGuid(), UserId = jon.Id, RoleId = userRole.Id, AssignedAt = DateTime.UtcNow },
                 new UserRole { Id = Guid.NewGuid(), UserId = admin.Id, RoleId = adminRole.Id, AssignedAt = DateTime.UtcNow });
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task SeedCompanyAsync()
+        {
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.EnsureCreatedAsync();
+
+            dbContext.Companies.Add(new Company
+            {
+                Id = 1,
+                Name = "Prime Real Estate",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
 
             await dbContext.SaveChangesAsync();
         }
