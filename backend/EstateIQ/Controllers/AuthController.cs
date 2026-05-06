@@ -172,6 +172,33 @@ public class AuthController(
         }
     }
 
+    [HttpPost("logout")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(LogoutResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<LogoutResponseDto>> Logout([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequestDto? request)
+    {
+        try
+        {
+            var logoutRequest = new RefreshTokenRequestDto
+            {
+                RefreshToken = Request.Cookies.TryGetValue("refreshToken", out var cookieRefreshToken)
+                    ? cookieRefreshToken
+                    : request?.RefreshToken
+            };
+
+            var response = await _authService.LogoutAsync(logoutRequest);
+            ClearRefreshTokenCookie();
+
+            return Ok(response);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error during logout.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during logout.");
+        }
+    }
+
     private void AppendRefreshTokenCookie(string refreshToken, DateTime refreshTokenExpiresAt)
     {
         Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
@@ -180,6 +207,16 @@ public class AuthController(
             Secure = Request.IsHttps,
             SameSite = SameSiteMode.Strict,
             Expires = refreshTokenExpiresAt
+        });
+    }
+
+    private void ClearRefreshTokenCookie()
+    {
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Strict
         });
     }
 }

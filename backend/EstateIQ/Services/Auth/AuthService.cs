@@ -232,6 +232,28 @@ public class AuthService(
         };
     }
 
+    public async Task<LogoutResponseDto> LogoutAsync(RefreshTokenRequestDto request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            var tokenHash = _tokenService.HashToken(request.RefreshToken.Trim());
+            var refreshToken = await _authRepository.GetRefreshTokenByHashAsync(tokenHash);
+
+            if (refreshToken is not null && refreshToken.RevokedAt is null)
+            {
+                refreshToken.RevokedAt = DateTime.UtcNow;
+                await _authRepository.UpdateRefreshTokenAsync(refreshToken);
+
+                _logger.LogInformation("Revoked refresh token {RefreshTokenId} during logout.", refreshToken.Id);
+            }
+        }
+
+        return new LogoutResponseDto
+        {
+            Message = "Logged out successfully."
+        };
+    }
+
     private static void ValidateRegisterRequest(RegisterRequestDto request)
     {
         var errors = new Dictionary<string, string[]>();
