@@ -7,6 +7,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     private static readonly DateTime SeedCreatedAt = new(2026, 4, 22, 0, 0, 0, DateTimeKind.Utc);
 
+    private static readonly Guid AdminRoleId = Guid.Parse("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a");
+    private static readonly Guid CompanyAdminRoleId = Guid.Parse("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f");
+    private static readonly Guid AgentRoleId = Guid.Parse("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01");
+    private static readonly Guid UserRoleId = Guid.Parse("1d3b5f7a-8c9e-4b2a-91d0-6e5f4c3b2a10");
+
+    private static readonly Guid ManageUsersPermissionId = Guid.Parse("d7a9c1e3-4f5b-46a8-90c2-1e3d5f7a9b0c");
+    private static readonly Guid ManageCompaniesPermissionId = Guid.Parse("4b2a0c8e-6f1d-43b5-9a7c-2e4f6d8b0a1c");
+    private static readonly Guid ManageAgentsPermissionId = Guid.Parse("9e1c3a5f-7b2d-40f6-8a9c-3d5e7f1b0c2a");
+    private static readonly Guid CreatePropertyPermissionId = Guid.Parse("0f2e4d6c-8b1a-45c7-9e3f-4a6b8d0c2e1f");
+    private static readonly Guid EditPropertyPermissionId = Guid.Parse("5c7a9e1d-3f2b-48d0-86a4-5b7c9e1f3d2a");
+    private static readonly Guid DeletePropertyPermissionId = Guid.Parse("8d0b2e4f-6a1c-43e5-9b7d-6c8e0a2f4b1d");
+    private static readonly Guid UploadPropertyImagesPermissionId = Guid.Parse("1a3c5e7f-9b0d-42f4-8c6a-7d9e1b3f5a0c");
+    private static readonly Guid ViewPropertiesPermissionId = Guid.Parse("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d");
+    private static readonly Guid BookViewingPermissionId = Guid.Parse("3f5a7c9e-1b0d-44f6-8a2c-9f1e3d5b7a0c");
+
     public DbSet<Company> Companies => Set<Company>();
 
     public DbSet<Agent> Agents => Set<Agent>();
@@ -21,8 +36,62 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Roles");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Description).HasMaxLength(255);
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => x.Name)
+                .IsUnique()
+                .HasDatabaseName("IX_Roles_Name");
+
+            entity.HasData(
+                new Role { Id = AdminRoleId, Name = "Admin", Description = "System administrator", CreatedAt = SeedCreatedAt },
+                new Role { Id = CompanyAdminRoleId, Name = "CompanyAdmin", Description = "Company administrator", CreatedAt = SeedCreatedAt },
+                new Role { Id = AgentRoleId, Name = "Agent", Description = "Real estate agent", CreatedAt = SeedCreatedAt },
+                new Role { Id = UserRoleId, Name = "User", Description = "Public user", CreatedAt = SeedCreatedAt });
+        });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.ToTable("Permissions");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Description).HasMaxLength(255);
+
+            entity.HasIndex(x => x.Name)
+                .IsUnique()
+                .HasDatabaseName("IX_Permissions_Name");
+
+            entity.HasData(
+                new Permission { Id = ManageUsersPermissionId, Name = "ManageUsers", Description = "Manage users" },
+                new Permission { Id = ManageCompaniesPermissionId, Name = "ManageCompanies", Description = "Manage companies" },
+                new Permission { Id = ManageAgentsPermissionId, Name = "ManageAgents", Description = "Manage agents" },
+                new Permission { Id = CreatePropertyPermissionId, Name = "CreateProperty", Description = "Create properties" },
+                new Permission { Id = EditPropertyPermissionId, Name = "EditProperty", Description = "Edit properties" },
+                new Permission { Id = DeletePropertyPermissionId, Name = "DeleteProperty", Description = "Delete properties" },
+                new Permission { Id = UploadPropertyImagesPermissionId, Name = "UploadPropertyImages", Description = "Upload property images" },
+                new Permission { Id = ViewPropertiesPermissionId, Name = "ViewProperties", Description = "View properties" },
+                new Permission { Id = BookViewingPermissionId, Name = "BookViewing", Description = "Book property viewings" });
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("Users");
