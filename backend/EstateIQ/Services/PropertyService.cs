@@ -19,6 +19,7 @@ public class PropertyService(
     ICompanyRepository companyRepository,
     IAgentRepository agentRepository,
     IAgentCompanyRepository agentCompanyRepository,
+    IPropertyImageService propertyImageService,
     IMapper mapper,
     ILogger<PropertyService> logger) : IPropertyService
 {
@@ -28,6 +29,7 @@ public class PropertyService(
     private readonly ICompanyRepository _companyRepository = companyRepository;
     private readonly IAgentRepository _agentRepository = agentRepository;
     private readonly IAgentCompanyRepository _agentCompanyRepository = agentCompanyRepository;
+    private readonly IPropertyImageService _propertyImageService = propertyImageService;
     private readonly IMapper _mapper = mapper;
     private readonly ILogger<PropertyService> _logger = logger;
 
@@ -54,7 +56,10 @@ public class PropertyService(
         }
 
         _logger.LogInformation("Property {PropertyId} retrieved.", id);
-        return _mapper.Map<PropertyDto>(property);
+        var dto = _mapper.Map<PropertyDto>(property);
+        dto.Images = await _propertyImageService.GetImagesAsync(id);
+
+        return dto;
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using EstateIQ.DTOs.Files;
+
 namespace EstateIQ.DTOs;
 
 /// <summary>
@@ -42,4 +44,6 @@ public class PropertyDto
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public IReadOnlyList<FileResponseDto> Images { get; set; } = [];
 }

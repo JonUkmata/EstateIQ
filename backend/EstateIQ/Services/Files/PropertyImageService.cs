@@ -91,6 +91,28 @@ public class PropertyImageService(
             .ToList();
     }
 
+    public async Task<IReadOnlyList<FileResponseDto>> GetImagesAsync(int propertyId)
+    {
+        if (!await _propertyRepository.ExistsAsync(propertyId))
+        {
+            throw new NotFoundException($"Property with id {propertyId} was not found.");
+        }
+
+        var entityId = CreatePropertyEntityId(propertyId);
+        var files = await _fileRepository.GetByEntityAsync(PropertyEntity, entityId);
+
+        return files
+            .Select(file => new FileResponseDto
+            {
+                Id = file.Id,
+                FileName = file.FileName,
+                Url = file.FilePath,
+                ContentType = file.ContentType,
+                FileSize = file.FileSize
+            })
+            .ToList();
+    }
+
     private string GetUploadsRoot(int propertyId)
     {
         var webRootPath = string.IsNullOrWhiteSpace(_webHostEnvironment.WebRootPath)
