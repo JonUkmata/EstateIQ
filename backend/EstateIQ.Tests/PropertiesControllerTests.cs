@@ -450,6 +450,81 @@ public class PropertiesControllerTests
     }
 
     [Fact]
+    public async Task DeleteImage_WithValidImage_ReturnsNoContentAndRemovesFileAndMetadata()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var uploadContent = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+        var uploadResponse = await client.PostAsync($"/api/properties/{propertyId}/images", uploadContent);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var uploadedFile = Assert.Single(await uploadResponse.Content.ReadFromJsonAsync<List<UploadedFileDto>>() ?? []);
+        var relativeFilePath = uploadedFile.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var absoluteFilePath = Path.Combine(factory.WebRootPath, relativeFilePath);
+        Assert.True(File.Exists(absoluteFilePath));
+        AddBearerToken(client, Permissions.EditProperty);
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyId}/images/{uploadedFile.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.False(File.Exists(absoluteFilePath));
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+    }
+
+    [Fact]
+    public async Task DeleteImage_FromWrongProperty_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedPropertiesAsync();
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var propertyIds = await dbContext.Properties
+            .OrderBy(property => property.Id)
+            .Select(property => property.Id)
+            .ToListAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var uploadContent = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+        var uploadResponse = await client.PostAsync($"/api/properties/{propertyIds[0]}/images", uploadContent);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var uploadedFile = Assert.Single(await uploadResponse.Content.ReadFromJsonAsync<List<UploadedFileDto>>() ?? []);
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyIds[1]}/images/{uploadedFile.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Single(dbContext.Files);
+    }
+
+    [Fact]
+    public async Task DeleteImage_WithoutToken_ReturnsUnauthorized()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyId}/images/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteImage_WithUserPermissionSet_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ViewProperties, Permissions.BookViewing);
+
+        var response = await client.DeleteAsync($"/api/properties/{propertyId}/images/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetProperty_WithUploadedImages_IncludesImagesInDetails()
     {
         await using var factory = new EstateIqWebApplicationFactory();

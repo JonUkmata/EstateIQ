@@ -277,6 +277,11 @@ public class PropertyServiceTests
         {
             return Task.FromResult<IReadOnlyList<FileResponseDto>>([]);
         }
+
+        public Task DeleteImageAsync(int propertyId, Guid imageId)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     private static AppDbContext CreateContext()
