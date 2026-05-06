@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using EstateIQ.Constants;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Auth;
 using EstateIQ.DTOs.Users;
 using EstateIQ.Models;
 using EstateIQ.Services.Auth;
@@ -261,6 +262,86 @@ public class UsersControllerTests
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
+    [Fact]
+    public async Task UpdateStatus_DeactivateUserBlocksLoginAndRefresh()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var userId = await factory.SeedLoginReadyUserAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers);
+
+        var response = await client.PatchAsJsonAsync($"/api/users/{userId}/status", new UpdateUserStatusRequestDto
+        {
+            IsActive = false
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<UpdateUserStatusResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal(userId, result!.Id);
+        Assert.False(result.IsActive);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var storedRefreshToken = await dbContext.RefreshTokens.SingleAsync();
+        Assert.NotNull(storedRefreshToken.RevokedAt);
+
+        using var authClient = factory.CreateClient();
+        var loginResponse = await authClient.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = "login.ready@example.com",
+            Password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, loginResponse.StatusCode);
+
+        var refreshResponse = await authClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequestDto
+        {
+            RefreshToken = "active-refresh-token"
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_WithoutManageUsersPermission_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var userId = await factory.SeedLoginReadyUserAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ViewProperties);
+
+        var response = await client.PatchAsJsonAsync($"/api/users/{userId}/status", new UpdateUserStatusRequestDto
+        {
+            IsActive = false
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateStatus_ReactivateUserAllowsLoginAgain()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var userId = await factory.SeedLoginReadyUserAsync(isActive: false);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ManageUsers);
+
+        var response = await client.PatchAsJsonAsync($"/api/users/{userId}/status", new UpdateUserStatusRequestDto
+        {
+            IsActive = true
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var authClient = factory.CreateClient();
+        var loginResponse = await authClient.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = "login.ready@example.com",
+            Password = "Password123!"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+    }
+
     private static void AddBearerToken(HttpClient client, params string[] permissions)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -470,6 +551,50 @@ public class UsersControllerTests
             await dbContext.SaveChangesAsync();
 
             return userId;
+        }
+
+        public async Task<Guid> SeedLoginReadyUserAsync(bool isActive = true)
+        {
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.EnsureCreatedAsync();
+
+            var passwordService = new PasswordService();
+            var userRole = await dbContext.Roles.SingleAsync(role => role.Name == Roles.User);
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Login",
+                LastName = "Ready",
+                Email = "login.ready@example.com",
+                IsActive = isActive,
+                IsEmailConfirmed = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            user.PasswordHash = passwordService.HashPassword(user, "Password123!");
+
+            dbContext.Users.Add(user);
+            dbContext.UserRoles.Add(new UserRole
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                RoleId = userRole.Id,
+                AssignedAt = DateTime.UtcNow
+            });
+            dbContext.RefreshTokens.Add(new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = new TokenService(Options.Create(TestJwtSettings)).HashToken("active-refresh-token"),
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await dbContext.SaveChangesAsync();
+
+            return user.Id;
         }
     }
 }

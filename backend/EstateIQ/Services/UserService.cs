@@ -192,6 +192,26 @@ public class UserService(
         };
     }
 
+    public async Task<UpdateUserStatusResponseDto> UpdateUserStatusAsync(Guid id, UpdateUserStatusRequestDto request)
+    {
+        ValidateUpdateUserStatusRequest(request);
+
+        var user = await _userRepository.GetByIdAsync(id)
+            ?? throw new NotFoundException($"User with id {id} was not found.");
+
+        var newStatus = request.IsActive!.Value;
+        user.IsActive = newStatus;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepository.UpdateUserStatusAsync(user, revokeRefreshTokens: !newStatus);
+
+        return new UpdateUserStatusResponseDto
+        {
+            Id = user.Id,
+            IsActive = user.IsActive
+        };
+    }
+
     private static void ValidateQueryParameters(UserListQueryParameters queryParameters)
     {
         var errors = new Dictionary<string, string[]>();
@@ -278,6 +298,17 @@ public class UserService(
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateUpdateUserStatusRequest(UpdateUserStatusRequestDto request)
+    {
+        if (request.IsActive is null)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.IsActive)] = ["IsActive is required."]
+            });
         }
     }
 
