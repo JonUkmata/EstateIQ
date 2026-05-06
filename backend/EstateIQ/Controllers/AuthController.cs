@@ -50,4 +50,41 @@ public class AuthController(
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during registration.");
         }
     }
+
+    [HttpPost("verify-email")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(VerifyEmailResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<VerifyEmailResponseDto>> VerifyEmail(VerifyEmailRequestDto request)
+    {
+        try
+        {
+            var response = await _authService.VerifyEmailAsync(request);
+            return Ok(response);
+        }
+        catch (ValidationException exception)
+        {
+            return ValidationProblem(new ValidationProblemDetails(exception.Errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Email verification failed"
+            });
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Email verification failed",
+                Detail = exception.Message
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error during email verification.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during email verification.");
+        }
+    }
 }

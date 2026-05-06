@@ -52,6 +52,44 @@ public class AuthControllerTests
         Assert.Equal(result.VerificationToken, verificationToken.Token);
     }
 
+    [Fact]
+    public async Task VerifyEmail_ValidToken_ReturnsOkAndConfirmsUser()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequestDto
+        {
+            FirstName = "Jon",
+            LastName = "Ukmata",
+            Email = "jon@example.com",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        });
+
+        var registerResult = await registerResponse.Content.ReadFromJsonAsync<RegisterResponseDto>();
+
+        var verifyResponse = await client.PostAsJsonAsync("/api/auth/verify-email", new VerifyEmailRequestDto
+        {
+            Token = registerResult!.VerificationToken
+        });
+
+        Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
+
+        var verifyResult = await verifyResponse.Content.ReadFromJsonAsync<VerifyEmailResponseDto>();
+        Assert.NotNull(verifyResult);
+        Assert.Equal("Email verified successfully. You can now login.", verifyResult!.Message);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await dbContext.Users.SingleAsync();
+        var verificationToken = await dbContext.EmailVerificationTokens.SingleAsync();
+
+        Assert.True(user.IsEmailConfirmed);
+        Assert.NotNull(verificationToken.UsedAt);
+    }
+
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();
