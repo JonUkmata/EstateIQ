@@ -17,4 +17,6 @@ public interface IAuthRepository
     Task UpdateEmailVerificationAsync(User user, EmailVerificationToken emailVerificationToken);
 
     Task AddRefreshTokenAsync(RefreshToken refreshToken);
+
+    Task<RefreshToken?> GetRefreshTokenByHashWithUserAuthDetailsAsync(string tokenHash);
 }

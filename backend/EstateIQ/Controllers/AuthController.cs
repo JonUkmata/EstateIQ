@@ -2,6 +2,7 @@ using EstateIQ.DTOs.Auth;
 using EstateIQ.Exceptions;
 using EstateIQ.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace EstateIQ.Controllers;
 
@@ -124,6 +125,50 @@ public class AuthController(
         {
             _logger.LogError(exception, "Unexpected error during login.");
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during login.");
+        }
+    }
+
+    [HttpPost("refresh")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<RefreshTokenResponseDto>> Refresh([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequestDto? request)
+    {
+        try
+        {
+            var refreshRequest = new RefreshTokenRequestDto
+            {
+                RefreshToken = Request.Cookies.TryGetValue("refreshToken", out var cookieRefreshToken)
+                    ? cookieRefreshToken
+                    : request?.RefreshToken
+            };
+
+            var response = await _authService.RefreshAsync(refreshRequest);
+            return Ok(response);
+        }
+        catch (ValidationException exception)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Refresh failed",
+                Detail = exception.Errors.Values.SelectMany(errors => errors).FirstOrDefault()
+            });
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Refresh failed",
+                Detail = exception.Message
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error during token refresh.");
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during token refresh.");
         }
     }
 
