@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Permissions } from '../constants/auth'
+import { useAuth } from '../context/AuthContext'
 import { getPropertyById, type PropertyDetails } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -13,6 +15,8 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 
 export default function PropertyDetailsPage() {
   const { id } = useParams()
+  const { hasPermission } = useAuth()
+  const canEditProperty = hasPermission(Permissions.EditProperty)
   const [property, setProperty] = useState<PropertyDetails | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [errorMessage, setErrorMessage] = useState('')
@@ -88,9 +92,11 @@ export default function PropertyDetailsPage() {
         <Link className="top-nav-link" to="/properties">
           Back to list
         </Link>
-        <Link className="top-nav-link" to={`/properties/${property.id}/edit`}>
-          Edit property
-        </Link>
+        {canEditProperty ? (
+          <Link className="top-nav-link" to={`/properties/${property.id}/edit`}>
+            Edit property
+          </Link>
+        ) : null}
       </div>
 
       <section className="details-grid">

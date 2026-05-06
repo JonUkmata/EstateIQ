@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Permissions } from '../constants/auth'
+import { useAuth } from '../context/AuthContext'
 import {
   getAgents,
   getCompanies,
@@ -61,6 +63,8 @@ const initialFormState: PropertyFormState = {
 export default function EditPropertyPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
+  const canEditProperty = hasPermission(Permissions.EditProperty)
   const [form, setForm] = useState<PropertyFormState>(initialFormState)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
@@ -145,6 +149,13 @@ export default function EditPropertyPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!canEditProperty) {
+      setSubmitState('error')
+      setSubmitMessage('You do not have permission to edit properties.')
+      return
+    }
+
     const parsedId = Number(id)
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
       setSubmitState('error')
