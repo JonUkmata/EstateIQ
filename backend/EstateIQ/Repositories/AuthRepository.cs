@@ -1,0 +1,34 @@
+using EstateIQ.Data;
+using EstateIQ.Interfaces;
+using EstateIQ.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace EstateIQ.Repositories;
+
+public class AuthRepository(AppDbContext dbContext) : IAuthRepository
+{
+    private readonly AppDbContext _dbContext = dbContext;
+
+    public Task<bool> EmailExistsAsync(string email)
+    {
+        return _dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.Email == email);
+    }
+
+    public Task<Role?> GetRoleByNameAsync(string roleName)
+    {
+        return _dbContext.Roles
+            .AsNoTracking()
+            .SingleOrDefaultAsync(role => role.Name == roleName);
+    }
+
+    public async Task AddRegistrationAsync(User user, UserRole userRole, EmailVerificationToken emailVerificationToken)
+    {
+        _dbContext.Users.Add(user);
+        _dbContext.UserRoles.Add(userRole);
+        _dbContext.EmailVerificationTokens.Add(emailVerificationToken);
+
+        await _dbContext.SaveChangesAsync();
+    }
+}
