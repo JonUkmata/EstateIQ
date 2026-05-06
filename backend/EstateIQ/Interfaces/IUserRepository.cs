@@ -13,4 +13,8 @@ public interface IUserRepository
     Task<Role?> GetRoleByNameAsync(string roleName);
 
     Task AddCompanyAdminAsync(User user, UserRole userRole, CompanyUser companyUser);
+
+    Task<bool> CompanyUserExistsAsync(Guid userId, int companyId, string relationshipType);
+
+    Task AddAgentUserAsync(User user, UserRole userRole, Agent agent, AgentCompany agentCompany);
 }

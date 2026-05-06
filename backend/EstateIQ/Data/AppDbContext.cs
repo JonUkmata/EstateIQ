@@ -406,6 +406,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(x => x.Email)
                 .IsUnique()
                 .HasDatabaseName("IX_Agents_Email");
+
+            entity.HasIndex(x => x.UserId)
+                .IsUnique()
+                .HasDatabaseName("IX_Agents_UserId")
+                .HasFilter("[UserId] IS NOT NULL");
+
+            entity.HasOne(x => x.User)
+                .WithOne(x => x.Agent)
+                .HasForeignKey<Agent>(x => x.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<AgentCompany>(entity =>

@@ -31,4 +31,6 @@ public class User
     public ICollection<FileRecord> UploadedFiles { get; set; } = new List<FileRecord>();
 
     public ICollection<CompanyUser> CompanyUsers { get; set; } = new List<CompanyUser>();
+
+    public Agent? Agent { get; set; }
 }

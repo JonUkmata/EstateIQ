@@ -186,11 +186,93 @@ public class UsersControllerTests
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
+    [Fact]
+    public async Task CreateAgent_AdminCanCreateAgentForAnyCompany()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompaniesAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Guid.NewGuid(), [Roles.Admin], Permissions.ManageAgents);
+
+        var response = await client.PostAsJsonAsync("/api/users/agents", BuildAgentRequest(companyId: 2));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<CreateAgentResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("agent@example.com", result!.Email);
+        Assert.Equal(2, result.CompanyId);
+        Assert.True(result.AgentId > 0);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await dbContext.Users.SingleAsync();
+        var userRole = await dbContext.UserRoles.Include(x => x.Role).SingleAsync();
+        var agent = await dbContext.Agents.SingleAsync();
+        var agentCompany = await dbContext.AgentCompanies.SingleAsync();
+
+        Assert.Equal(result.UserId, user.Id);
+        Assert.NotEqual("Password123!", user.PasswordHash);
+        Assert.True(user.IsEmailConfirmed);
+        Assert.Equal(Roles.Agent, userRole.Role.Name);
+        Assert.Equal(user.Id, agent.UserId);
+        Assert.Equal(result.AgentId, agent.Id);
+        Assert.Equal(2, agentCompany.CompanyId);
+        Assert.Equal(agent.Id, agentCompany.AgentId);
+    }
+
+    [Fact]
+    public async Task CreateAgent_CompanyAdminCanCreateAgentForOwnCompany()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var companyAdminUserId = await factory.SeedCompanyAdminAsync(companyId: 1);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, companyAdminUserId, [Roles.CompanyAdmin], Permissions.ManageAgents);
+
+        var response = await client.PostAsJsonAsync("/api/users/agents", BuildAgentRequest(companyId: 1));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAgent_CompanyAdminCannotCreateAgentForOtherCompany()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var companyAdminUserId = await factory.SeedCompanyAdminAsync(companyId: 1);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, companyAdminUserId, [Roles.CompanyAdmin], Permissions.ManageAgents);
+
+        var response = await client.PostAsJsonAsync("/api/users/agents", BuildAgentRequest(companyId: 2));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAgent_DuplicateEmail_ReturnsConflict()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedCompaniesAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Guid.NewGuid(), [Roles.Admin], Permissions.ManageAgents);
+        await client.PostAsJsonAsync("/api/users/agents", BuildAgentRequest(companyId: 1));
+
+        var response = await client.PostAsJsonAsync("/api/users/agents", BuildAgentRequest(companyId: 1));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     private static void AddBearerToken(HttpClient client, params string[] permissions)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
             GenerateToken(permissions));
+    }
+
+    private static void AddBearerToken(HttpClient client, Guid userId, string[] roles, params string[] permissions)
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            GenerateToken(userId, roles, permissions));
     }
 
     private static string GenerateToken(params string[] permissions)
@@ -207,6 +289,20 @@ public class UsersControllerTests
             permissions);
     }
 
+    private static string GenerateToken(Guid userId, string[] roles, params string[] permissions)
+    {
+        var tokenService = new TokenService(Options.Create(TestJwtSettings));
+
+        return tokenService.GenerateAccessToken(
+            new User
+            {
+                Id = userId,
+                Email = "users-test@example.com"
+            },
+            roles,
+            permissions);
+    }
+
     private static CreateCompanyAdminRequestDto BuildCompanyAdminRequest()
     {
         return new CreateCompanyAdminRequestDto
@@ -216,6 +312,19 @@ public class UsersControllerTests
             Email = "companyadmin@example.com",
             Password = "Password123!",
             CompanyId = 1
+        };
+    }
+
+    private static CreateAgentRequestDto BuildAgentRequest(int companyId)
+    {
+        return new CreateAgentRequestDto
+        {
+            FirstName = "Agent",
+            LastName = "One",
+            Email = "agent@example.com",
+            Password = "Password123!",
+            Phone = "+38344111222",
+            CompanyId = companyId
         };
     }
 
@@ -297,21 +406,70 @@ public class UsersControllerTests
 
         public async Task SeedCompanyAsync()
         {
+            await SeedCompaniesAsync(companyCount: 1);
+        }
+
+        public async Task SeedCompaniesAsync(int companyCount = 2)
+        {
             using var scope = Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             await dbContext.Database.EnsureDeletedAsync();
             await dbContext.Database.EnsureCreatedAsync();
 
-            dbContext.Companies.Add(new Company
+            for (var id = 1; id <= companyCount; id++)
             {
-                Id = 1,
-                Name = "Prime Real Estate",
+                dbContext.Companies.Add(new Company
+                {
+                    Id = id,
+                    Name = $"Company {id}",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task<Guid> SeedCompanyAdminAsync(int companyId)
+        {
+            await SeedCompaniesAsync();
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companyAdminRole = await dbContext.Roles.SingleAsync(role => role.Name == Roles.CompanyAdmin);
+            var userId = Guid.NewGuid();
+
+            dbContext.Users.Add(new User
+            {
+                Id = userId,
+                FirstName = "Company",
+                LastName = "Admin",
+                Email = "company.admin@example.com",
+                PasswordHash = "hash",
                 IsActive = true,
+                IsEmailConfirmed = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            dbContext.UserRoles.Add(new UserRole
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                RoleId = companyAdminRole.Id,
+                AssignedAt = DateTime.UtcNow
+            });
+            dbContext.CompanyUsers.Add(new CompanyUser
+            {
+                Id = Guid.NewGuid(),
+                CompanyId = companyId,
+                UserId = userId,
+                RelationshipType = Roles.CompanyAdmin,
                 CreatedAt = DateTime.UtcNow
             });
 
             await dbContext.SaveChangesAsync();
+
+            return userId;
         }
     }
 }
