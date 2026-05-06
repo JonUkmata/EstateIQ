@@ -7,6 +7,7 @@ import LoginPage from '../pages/LoginPage'
 import MapPage from '../pages/MapPage'
 import PropertyDetailsPage from '../pages/PropertyDetailsPage'
 import PropertiesPage from '../pages/PropertiesPage'
+import RegisterPage from '../pages/RegisterPage'
 
 export default function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export default function AppRouter() {
           <Route path="dashboard" element={<DashboardPage />} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -1,3 +1,5 @@
+import type { RegisterRequest, RegisterResponse } from '../types/auth'
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
 function buildApiUrl(path: string) {
@@ -8,9 +10,22 @@ async function parseErrorDetails(response: Response) {
   const contentType = response.headers.get('content-type') ?? ''
   if (contentType.includes('application/json')) {
     const payload = (await response.json()) as Record<string, unknown>
+    const validationErrors = payload.errors
+    if (validationErrors && typeof validationErrors === 'object' && !Array.isArray(validationErrors)) {
+      const messages = Object.values(validationErrors)
+        .flatMap((value) => (Array.isArray(value) ? value : []))
+        .filter((value): value is string => typeof value === 'string')
+
+      if (messages.length > 0) {
+        return messages.join(' ')
+      }
+    }
+
     const message =
       typeof payload.message === 'string'
         ? payload.message
+        : typeof payload.detail === 'string'
+          ? payload.detail
         : typeof payload.title === 'string'
           ? payload.title
           : ''
@@ -326,6 +341,16 @@ export async function deleteProperty(id: number) {
 export async function updateProperty(id: number, payload: UpdatePropertyPayload) {
   return fetchJson<PropertyDetails>(`/api/properties/${id}`, {
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function registerUser(payload: RegisterRequest) {
+  return fetchJson<RegisterResponse>('/api/auth/register', {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
