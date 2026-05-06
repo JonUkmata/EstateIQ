@@ -1,6 +1,8 @@
 using EstateIQ.Constants;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Files;
 using EstateIQ.Exceptions;
+using EstateIQ.Extensions;
 using EstateIQ.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,9 +17,11 @@ namespace EstateIQ.Controllers;
 [Route("api/[controller]")]
 public class PropertiesController(
     IPropertyService propertyService,
+    IPropertyImageService propertyImageService,
     ILogger<PropertiesController> logger) : ControllerBase
 {
     private readonly IPropertyService _propertyService = propertyService;
+    private readonly IPropertyImageService _propertyImageService = propertyImageService;
     private readonly ILogger<PropertiesController> _logger = logger;
 
     /// <summary>
@@ -182,6 +186,42 @@ public class PropertiesController(
         {
             _logger.LogError(exception, "Error deleting property {PropertyId}.", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the property.");
+        }
+    }
+
+    /// <summary>
+    /// Uploads one or more images for a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <param name="files">The image files submitted under the multipart field name "files".</param>
+    /// <returns>The uploaded file metadata records.</returns>
+    [HttpPost("{id:int}/images")]
+    [Authorize(Policy = Permissions.UploadPropertyImages)]
+    [Consumes("multipart/form-data")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<UploadedFileDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<UploadedFileDto>>> UploadImages(int id, [FromForm] List<IFormFile> files)
+    {
+        try
+        {
+            var uploadedFiles = await _propertyImageService.UploadImagesAsync(id, files, User.GetUserId());
+            return Created($"/api/properties/{id}/images", uploadedFiles);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error uploading images for property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while uploading property images.");
         }
     }
 }

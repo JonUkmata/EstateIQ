@@ -5,6 +5,7 @@ using System.Text.Json;
 using EstateIQ.Constants;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Files;
 using EstateIQ.Models;
 using EstateIQ.Services.Auth;
 using Microsoft.AspNetCore.Hosting;
@@ -311,13 +312,102 @@ public class PropertiesControllerTests
         Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task UploadImages_WithValidImage_SavesFileAndMetadata()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var content = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+
+        var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<List<UploadedFileDto>>();
+        Assert.NotNull(result);
+        var uploadedFile = Assert.Single(result!);
+        Assert.Equal("image.jpg", uploadedFile.FileName);
+        Assert.Equal("image/jpeg", uploadedFile.ContentType);
+        Assert.Equal(4, uploadedFile.FileSize);
+        Assert.StartsWith($"/uploads/properties/{propertyId}/", uploadedFile.FilePath);
+
+        var relativeFilePath = uploadedFile.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        Assert.True(File.Exists(Path.Combine(factory.WebRootPath, relativeFilePath)));
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var storedFile = Assert.Single(dbContext.Files);
+        Assert.Equal(uploadedFile.Id, storedFile.Id);
+        Assert.Equal("Property", storedFile.Entity);
+        Assert.Equal(uploadedFile.FilePath, storedFile.FilePath);
+    }
+
+    [Fact]
+    public async Task UploadImages_WhenMoreThanTenImages_ReturnsBadRequest()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var content = BuildImageUploadContent(
+            ("image-1.jpg", "image/jpeg"),
+            ("image-2.jpg", "image/jpeg"),
+            ("image-3.jpg", "image/jpeg"),
+            ("image-4.jpg", "image/jpeg"),
+            ("image-5.jpg", "image/jpeg"),
+            ("image-6.jpg", "image/jpeg"),
+            ("image-7.jpg", "image/jpeg"),
+            ("image-8.jpg", "image/jpeg"),
+            ("image-9.jpg", "image/jpeg"),
+            ("image-10.jpg", "image/jpeg"),
+            ("image-11.jpg", "image/jpeg"));
+
+        var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadImages_WithInvalidExtension_ReturnsBadRequest()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var content = BuildImageUploadContent(("image.gif", "image/gif"));
+
+        var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadImages_MissingProperty_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedReferenceDataAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var content = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+
+        var response = await client.PostAsync("/api/properties/999/images", content);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();
+        private readonly string _webRootPath = Path.Combine(Path.GetTempPath(), $"estateiq-tests-{Guid.NewGuid():N}");
+
+        public string WebRootPath => _webRootPath;
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.UseWebRoot(_webRootPath);
 
             builder.ConfigureAppConfiguration((_, configurationBuilder) =>
             {
@@ -337,6 +427,16 @@ public class PropertiesControllerTests
                 services.AddDbContext<AppDbContext>(options =>
                     options.UseInMemoryDatabase(_databaseName));
             });
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing && Directory.Exists(_webRootPath))
+            {
+                Directory.Delete(_webRootPath, recursive: true);
+            }
         }
 
         public async Task ResetDatabaseAsync()
@@ -581,5 +681,19 @@ public class PropertiesControllerTests
             },
             [Roles.Agent],
             permissions);
+    }
+
+    private static MultipartFormDataContent BuildImageUploadContent(params (string FileName, string ContentType)[] files)
+    {
+        var content = new MultipartFormDataContent();
+
+        foreach (var file in files)
+        {
+            var fileContent = new ByteArrayContent([1, 2, 3, 4]);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "files", file.FileName);
+        }
+
+        return content;
     }
 }
