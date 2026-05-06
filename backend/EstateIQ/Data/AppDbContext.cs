@@ -76,8 +76,47 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+    public DbSet<FileRecord> Files => Set<FileRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<FileRecord>(entity =>
+        {
+            entity.ToTable("Files");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Entity)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.FileName)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.FilePath)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.ContentType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.ToTable(t => t.HasCheckConstraint("CK_Files_FileSize", "[FileSize] > 0"));
+
+            entity.HasIndex(x => new { x.Entity, x.EntityId })
+                .HasDatabaseName("IX_Files_Entity_EntityId");
+
+            entity.HasIndex(x => x.UploadedBy)
+                .HasDatabaseName("IX_Files_UploadedBy");
+
+            entity.HasOne(x => x.UploadedByUser)
+                .WithMany(x => x.UploadedFiles)
+                .HasForeignKey(x => x.UploadedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.ToTable("RefreshTokens");

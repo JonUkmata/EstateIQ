@@ -27,4 +27,6 @@ public class User
     public ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
 
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
+    public ICollection<FileRecord> UploadedFiles { get; set; } = new List<FileRecord>();
 }
