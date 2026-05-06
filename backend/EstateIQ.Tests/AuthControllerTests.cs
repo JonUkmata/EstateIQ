@@ -169,6 +169,52 @@ public class AuthControllerTests
         Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task Logout_ValidBodyRefreshToken_RevokesTokenAndRefreshFails()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var loginResult = await RegisterVerifyAndLoginAsync(client);
+
+        var logoutResponse = await client.PostAsJsonAsync("/api/auth/logout", new RefreshTokenRequestDto
+        {
+            RefreshToken = loginResult.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.OK, logoutResponse.StatusCode);
+        var logoutResult = await logoutResponse.Content.ReadFromJsonAsync<LogoutResponseDto>();
+        Assert.NotNull(logoutResult);
+        Assert.Equal("Logged out successfully.", logoutResult!.Message);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var storedRefreshToken = await dbContext.RefreshTokens.SingleAsync();
+        Assert.NotNull(storedRefreshToken.RevokedAt);
+
+        var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequestDto
+        {
+            RefreshToken = loginResult.RefreshToken
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Logout_MissingRefreshToken_ReturnsSuccess()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var logoutResponse = await client.PostAsJsonAsync("/api/auth/logout", new RefreshTokenRequestDto());
+
+        Assert.Equal(HttpStatusCode.OK, logoutResponse.StatusCode);
+        var logoutResult = await logoutResponse.Content.ReadFromJsonAsync<LogoutResponseDto>();
+        Assert.NotNull(logoutResult);
+        Assert.Equal("Logged out successfully.", logoutResult!.Message);
+    }
+
     private static async Task<LoginResponseDto> RegisterVerifyAndLoginAsync(HttpClient client)
     {
         var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequestDto
