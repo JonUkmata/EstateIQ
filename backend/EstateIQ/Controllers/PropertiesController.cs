@@ -252,4 +252,33 @@ public class PropertiesController(
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching property images.");
         }
     }
+
+    /// <summary>
+    /// Deletes an image from a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <param name="imageId">The image identifier.</param>
+    /// <returns>No content when the image metadata is removed.</returns>
+    [HttpDelete("{id:int}/images/{imageId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.ManagePropertyImages)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteImage(int id, Guid imageId)
+    {
+        try
+        {
+            await _propertyImageService.DeleteImageAsync(id, imageId);
+            return NoContent();
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error deleting image {ImageId} for property {PropertyId}.", imageId, id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the property image.");
+        }
+    }
 }

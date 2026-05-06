@@ -89,6 +89,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(Permissions.EditProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.EditProperty));
     options.AddPolicy(Permissions.DeleteProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.DeleteProperty));
     options.AddPolicy(Permissions.UploadPropertyImages, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.UploadPropertyImages));
+    options.AddPolicy(AuthorizationPolicies.ManagePropertyImages, policy => policy.RequireAssertion(context =>
+        context.User.HasClaim(Permissions.ClaimType, Permissions.UploadPropertyImages)
+        || context.User.HasClaim(Permissions.ClaimType, Permissions.EditProperty)));
     options.AddPolicy(Permissions.ViewProperties, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ViewProperties));
     options.AddPolicy(Permissions.BookViewing, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.BookViewing));
 });
