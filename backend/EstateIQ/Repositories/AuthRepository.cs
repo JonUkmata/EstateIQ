@@ -23,6 +23,16 @@ public class AuthRepository(AppDbContext dbContext) : IAuthRepository
             .SingleOrDefaultAsync(role => role.Name == roleName);
     }
 
+    public Task<User?> GetUserByEmailWithAuthDetailsAsync(string email)
+    {
+        return _dbContext.Users
+            .Include(user => user.UserRoles)
+                .ThenInclude(userRole => userRole.Role)
+                    .ThenInclude(role => role.RolePermissions)
+                        .ThenInclude(rolePermission => rolePermission.Permission)
+            .SingleOrDefaultAsync(user => user.Email == email);
+    }
+
     public Task<EmailVerificationToken?> GetEmailVerificationTokenAsync(string token)
     {
         return _dbContext.EmailVerificationTokens
@@ -43,6 +53,13 @@ public class AuthRepository(AppDbContext dbContext) : IAuthRepository
     {
         _dbContext.Users.Update(user);
         _dbContext.EmailVerificationTokens.Update(emailVerificationToken);
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task AddRefreshTokenAsync(RefreshToken refreshToken)
+    {
+        _dbContext.RefreshTokens.Add(refreshToken);
 
         await _dbContext.SaveChangesAsync();
     }

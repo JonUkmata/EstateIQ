@@ -90,6 +90,51 @@ public class AuthControllerTests
         Assert.NotNull(verificationToken.UsedAt);
     }
 
+    [Fact]
+    public async Task Login_VerifiedUser_ReturnsTokensAndPersistsHashedRefreshToken()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequestDto
+        {
+            FirstName = "Jon",
+            LastName = "Ukmata",
+            Email = "jon@example.com",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        });
+        var registerResult = await registerResponse.Content.ReadFromJsonAsync<RegisterResponseDto>();
+        await client.PostAsJsonAsync("/api/auth/verify-email", new VerifyEmailRequestDto
+        {
+            Token = registerResult!.VerificationToken
+        });
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = "jon@example.com",
+            Password = "Password123!"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginResult);
+        Assert.False(string.IsNullOrWhiteSpace(loginResult!.AccessToken));
+        Assert.False(string.IsNullOrWhiteSpace(loginResult.RefreshToken));
+        Assert.Equal("jon@example.com", loginResult.User.Email);
+        Assert.Equal(["User"], loginResult.User.Roles);
+        Assert.Equal(["BookViewing", "ViewProperties"], loginResult.User.Permissions.Order().ToArray());
+        Assert.True(loginResponse.Headers.TryGetValues("Set-Cookie", out var cookies));
+        Assert.Contains(cookies, cookie => cookie.StartsWith("refreshToken=", StringComparison.Ordinal));
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var refreshToken = await dbContext.RefreshTokens.SingleAsync();
+        Assert.NotEqual(loginResult.RefreshToken, refreshToken.TokenHash);
+    }
+
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();
