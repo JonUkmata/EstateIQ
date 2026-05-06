@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using EstateIQ.Constants;
 using EstateIQ.Interfaces;
 using EstateIQ.Models;
 using Microsoft.Extensions.Options;
@@ -34,7 +35,7 @@ public class TokenService : ITokenService
         };
 
         claims.AddRange(roles.Distinct(StringComparer.Ordinal).Select(role => new Claim(ClaimTypes.Role, role)));
-        claims.AddRange(permissions.Distinct(StringComparer.Ordinal).Select(permission => new Claim("permission", permission)));
+        claims.AddRange(permissions.Distinct(StringComparer.Ordinal).Select(permission => new Claim(Permissions.ClaimType, permission)));
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);

@@ -79,7 +79,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = ClaimTypes.Role
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Permissions.ManageUsers, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageUsers));
+    options.AddPolicy(Permissions.ManageCompanies, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageCompanies));
+    options.AddPolicy(Permissions.ManageAgents, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageAgents));
+    options.AddPolicy(Permissions.CreateProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.CreateProperty));
+    options.AddPolicy(Permissions.EditProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.EditProperty));
+    options.AddPolicy(Permissions.DeleteProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.DeleteProperty));
+    options.AddPolicy(Permissions.UploadPropertyImages, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.UploadPropertyImages));
+    options.AddPolicy(Permissions.ViewProperties, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ViewProperties));
+    options.AddPolicy(Permissions.BookViewing, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.BookViewing));
+});
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
@@ -199,6 +210,10 @@ app.MapGet("/api/test/protected", (ClaimsPrincipal user) => Results.Ok(new
 app.MapGet("/api/test/admin", () => "Admin access granted")
     .RequireAuthorization(policy => policy.RequireRole(Roles.Admin))
     .WithName("GetAdminAuthorizationTest");
+
+app.MapGet("/api/test/permissions/manage-users", () => "ManageUsers permission granted")
+    .RequireAuthorization(Permissions.ManageUsers)
+    .WithName("GetManageUsersPermissionTest");
 
 app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
 {
