@@ -11,6 +11,7 @@ using EstateIQ.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
@@ -60,6 +61,7 @@ builder.Services.AddControllers();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings are not configured.");
+ValidateJwtSettings(jwtSettings);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -112,6 +114,31 @@ builder.Services.AddSwaggerGen(options =>
     {
         options.IncludeXmlComments(xmlFilePath, includeControllerXmlComments: true);
     }
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter a valid JWT bearer token."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            []
+        }
+    });
 });
 
 var app = builder.Build();
@@ -162,6 +189,13 @@ app.MapControllers();
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
 
+app.MapGet("/api/test/protected", (ClaimsPrincipal user) => Results.Ok(new
+{
+    userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+}))
+.RequireAuthorization()
+.WithName("GetProtectedApiTest");
+
 app.MapGet("/api/test/admin", () => "Admin access granted")
     .RequireAuthorization(policy => policy.RequireRole(Roles.Admin))
     .WithName("GetAdminAuthorizationTest");
@@ -203,5 +237,28 @@ app.MapGet("/api/test/redis", async (IRedisCacheService redisCacheService, ILogg
 .WithName("GetRedisConnectionTest");
 
 app.Run();
+
+static void ValidateJwtSettings(JwtSettings jwtSettings)
+{
+    if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
+    {
+        throw new InvalidOperationException("JWT issuer is not configured.");
+    }
+
+    if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
+    {
+        throw new InvalidOperationException("JWT audience is not configured.");
+    }
+
+    if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+    {
+        throw new InvalidOperationException("JWT key is not configured.");
+    }
+
+    if (Encoding.UTF8.GetByteCount(jwtSettings.Key) < 32)
+    {
+        throw new InvalidOperationException("JWT key must be at least 32 bytes long.");
+    }
+}
 
 public partial class Program;
