@@ -224,4 +224,32 @@ public class PropertiesController(
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while uploading property images.");
         }
     }
+
+    /// <summary>
+    /// Gets public image metadata for a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <returns>The image metadata records for the property.</returns>
+    [HttpGet("{id:int}/images")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<FileResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<FileResponseDto>>> GetImages(int id)
+    {
+        try
+        {
+            var images = await _propertyImageService.GetImagesAsync(id);
+            return Ok(images);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error fetching images for property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching property images.");
+        }
+    }
 }

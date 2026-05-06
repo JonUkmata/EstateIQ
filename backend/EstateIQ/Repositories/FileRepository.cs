@@ -16,6 +16,16 @@ public class FileRepository(AppDbContext dbContext) : IFileRepository
             .CountAsync(file => file.Entity == entity && file.EntityId == entityId);
     }
 
+    public async Task<IReadOnlyList<FileRecord>> GetByEntityAsync(string entity, Guid entityId)
+    {
+        return await _dbContext.Files
+            .AsNoTracking()
+            .Where(file => file.Entity == entity && file.EntityId == entityId)
+            .OrderBy(file => file.CreatedAt)
+            .ThenBy(file => file.Id)
+            .ToListAsync();
+    }
+
     public async Task AddRangeAsync(IEnumerable<FileRecord> files)
     {
         await _dbContext.Files.AddRangeAsync(files);

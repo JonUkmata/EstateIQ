@@ -116,6 +116,7 @@ public class PropertiesControllerTests
         Assert.Equal("Dobrunaj", result.Agent.LastName);
         Assert.Equal(41.3275m, result.Latitude);
         Assert.Equal(19.8187m, result.Longitude);
+        Assert.Empty(result.Images);
     }
 
     [Fact]
@@ -395,6 +396,80 @@ public class PropertiesControllerTests
         var response = await client.PostAsync("/api/properties/999/images", content);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetImages_WithUploadedImages_ReturnsPublicImageMetadata()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var uploadContent = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+        var uploadResponse = await client.PostAsync($"/api/properties/{propertyId}/images", uploadContent);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var response = await client.GetAsync($"/api/properties/{propertyId}/images");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<FileResponseDto>>();
+        Assert.NotNull(result);
+        var image = Assert.Single(result!);
+        Assert.Equal("image.jpg", image.FileName);
+        Assert.Equal("image/jpeg", image.ContentType);
+        Assert.Equal(4, image.FileSize);
+        Assert.StartsWith($"/uploads/properties/{propertyId}/", image.Url);
+    }
+
+    [Fact]
+    public async Task GetImages_WithNoImages_ReturnsEmptyList()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/properties/{propertyId}/images");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<List<FileResponseDto>>();
+        Assert.NotNull(result);
+        Assert.Empty(result!);
+    }
+
+    [Fact]
+    public async Task GetImages_MissingProperty_ReturnsNotFound()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedReferenceDataAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/properties/999/images");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetProperty_WithUploadedImages_IncludesImagesInDetails()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.UploadPropertyImages);
+        using var uploadContent = BuildImageUploadContent(("image.webp", "image/webp"));
+        var uploadResponse = await client.PostAsync($"/api/properties/{propertyId}/images", uploadContent);
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var response = await client.GetAsync($"/api/properties/{propertyId}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<PropertyDto>();
+        Assert.NotNull(result);
+        Assert.Equal(propertyId, result!.Id);
+        var image = Assert.Single(result.Images);
+        Assert.Equal("image.webp", image.FileName);
+        Assert.StartsWith($"/uploads/properties/{propertyId}/", image.Url);
     }
 
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>

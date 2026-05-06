@@ -6,4 +6,6 @@ namespace EstateIQ.Interfaces;
 public interface IPropertyImageService
 {
     Task<IReadOnlyList<UploadedFileDto>> UploadImagesAsync(int propertyId, IReadOnlyCollection<IFormFile> files, Guid? uploadedBy);
+
+    Task<IReadOnlyList<FileResponseDto>> GetImagesAsync(int propertyId);
 }
