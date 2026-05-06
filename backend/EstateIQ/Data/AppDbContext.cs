@@ -70,8 +70,81 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
+
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshTokens");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.TokenHash)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => x.UserId)
+                .HasDatabaseName("IX_RefreshTokens_UserId");
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.RefreshTokens)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailVerificationToken>(entity =>
+        {
+            entity.ToTable("EmailVerificationTokens");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Token)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => x.UserId)
+                .HasDatabaseName("IX_EmailVerificationTokens_UserId");
+
+            entity.HasIndex(x => x.Token)
+                .IsUnique()
+                .HasDatabaseName("IX_EmailVerificationTokens_Token");
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.EmailVerificationTokens)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("PasswordResetTokens");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Token)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => x.UserId)
+                .HasDatabaseName("IX_PasswordResetTokens_UserId");
+
+            entity.HasIndex(x => x.Token)
+                .IsUnique()
+                .HasDatabaseName("IX_PasswordResetTokens_Token");
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.PasswordResetTokens)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<UserRole>(entity =>
         {
             entity.ToTable("UserRoles");
