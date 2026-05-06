@@ -5,6 +5,7 @@ using System.Text.Json;
 using EstateIQ.Constants;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Auth;
 using EstateIQ.DTOs.Files;
 using EstateIQ.Models;
 using EstateIQ.Services.Auth;
@@ -282,6 +283,38 @@ public class PropertiesControllerTests
         var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateProperty_WithRealLoggedInUserRole_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedLoginReadyUserAsync(Roles.User, "public.user@example.com");
+        using var client = factory.CreateClient();
+        await LoginAndAttachTokenAsync(client, "public.user@example.com");
+
+        var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(Roles.Admin, "admin.property@example.com")]
+    [InlineData(Roles.CompanyAdmin, "company.admin.property@example.com")]
+    [InlineData(Roles.Agent, "agent.property@example.com")]
+    public async Task CreateProperty_WithRealLoggedInManagementRole_ReturnsCreated(string roleName, string email)
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedLoginReadyUserAsync(roleName, email);
+        using var client = factory.CreateClient();
+        await LoginAndAttachTokenAsync(client, email);
+
+        var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<PropertyDto>();
+        Assert.NotNull(result);
+        Assert.Equal("Modern Apartment", result!.Title);
     }
 
     [Fact]
@@ -698,6 +731,40 @@ public class PropertiesControllerTests
             await dbContext.SaveChangesAsync();
         }
 
+        public async Task SeedLoginReadyUserAsync(string roleName, string email)
+        {
+            await ResetDatabaseAsync();
+
+            using var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await SeedReferenceDataAsync(dbContext);
+
+            var role = await dbContext.Roles.SingleAsync(existingRole => existingRole.Name == roleName);
+            var passwordService = new PasswordService();
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Auth",
+                LastName = roleName,
+                Email = email,
+                IsActive = true,
+                IsEmailConfirmed = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            user.PasswordHash = passwordService.HashPassword(user, "Password123!");
+
+            dbContext.Users.Add(user);
+            dbContext.UserRoles.Add(new UserRole
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            });
+
+            await dbContext.SaveChangesAsync();
+        }
+
         private static async Task SeedReferenceDataAsync(AppDbContext dbContext)
         {
             if (!await dbContext.PropertyTypes.AnyAsync(propertyType => propertyType.Id == 1))
@@ -831,6 +898,20 @@ public class PropertiesControllerTests
             },
             [Roles.Agent],
             permissions);
+    }
+
+    private static async Task LoginAndAttachTokenAsync(HttpClient client, string email)
+    {
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = email,
+            Password = "Password123!"
+        });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginResult);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginResult!.AccessToken);
     }
 
     private static MultipartFormDataContent BuildImageUploadContent(params (string FileName, string ContentType)[] files)

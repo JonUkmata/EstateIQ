@@ -47,6 +47,8 @@ public class AuthControllerTests
         var verificationToken = await dbContext.EmailVerificationTokens.SingleAsync();
 
         Assert.Equal("jon@example.com", user.Email);
+        Assert.False(user.IsEmailConfirmed);
+        Assert.True(user.IsActive);
         Assert.NotEqual("Password123!", user.PasswordHash);
         Assert.Equal("User", role.Name);
         Assert.Equal(result.VerificationToken, verificationToken.Token);
@@ -88,6 +90,33 @@ public class AuthControllerTests
 
         Assert.True(user.IsEmailConfirmed);
         Assert.NotNull(verificationToken.UsedAt);
+    }
+
+    [Fact]
+    public async Task Login_UnverifiedUser_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        await client.PostAsJsonAsync("/api/auth/register", new RegisterRequestDto
+        {
+            FirstName = "Jon",
+            LastName = "Ukmata",
+            Email = "jon@example.com",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        });
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = "jon@example.com",
+            Password = "Password123!"
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, loginResponse.StatusCode);
+        var content = await loginResponse.Content.ReadAsStringAsync();
+        Assert.Contains("Email is not verified.", content, StringComparison.Ordinal);
     }
 
     [Fact]
