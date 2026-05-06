@@ -6,4 +6,6 @@ namespace EstateIQ.Interfaces;
 public interface IUserService
 {
     Task<PagedResult<UserListItemDto>> GetUsersAsync(UserListQueryParameters queryParameters);
+
+    Task<CreateCompanyAdminResponseDto> CreateCompanyAdminAsync(CreateCompanyAdminRequestDto request);
 }

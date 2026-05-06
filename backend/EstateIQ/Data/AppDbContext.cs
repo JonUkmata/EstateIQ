@@ -78,8 +78,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<FileRecord> Files => Set<FileRecord>();
 
+    public DbSet<CompanyUser> CompanyUsers => Set<CompanyUser>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CompanyUser>(entity =>
+        {
+            entity.ToTable("CompanyUsers");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.RelationshipType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => new { x.CompanyId, x.UserId })
+                .IsUnique()
+                .HasDatabaseName("IX_CompanyUsers_CompanyId_UserId");
+
+            entity.HasIndex(x => x.UserId)
+                .HasDatabaseName("IX_CompanyUsers_UserId");
+
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.CompanyUsers)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.CompanyUsers)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<FileRecord>(entity =>
         {
             entity.ToTable("Files");

@@ -29,4 +29,6 @@ public class User
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 
     public ICollection<FileRecord> UploadedFiles { get; set; } = new List<FileRecord>();
+
+    public ICollection<CompanyUser> CompanyUsers { get; set; } = new List<CompanyUser>();
 }
