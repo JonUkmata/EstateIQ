@@ -10,4 +10,6 @@ public interface IUserService
     Task<CreateCompanyAdminResponseDto> CreateCompanyAdminAsync(CreateCompanyAdminRequestDto request);
 
     Task<CreateAgentResponseDto> CreateAgentAsync(CreateAgentRequestDto request, Guid currentUserId, bool isAdmin);
+
+    Task<UpdateUserStatusResponseDto> UpdateUserStatusAsync(Guid id, UpdateUserStatusRequestDto request);
 }

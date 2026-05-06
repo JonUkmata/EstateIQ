@@ -87,4 +87,33 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
 
         await _dbContext.SaveChangesAsync();
     }
+
+    public Task<User?> GetByIdAsync(Guid id)
+    {
+        return _dbContext.Users
+            .SingleOrDefaultAsync(user => user.Id == id);
+    }
+
+    public async Task UpdateUserStatusAsync(User user, bool revokeRefreshTokens)
+    {
+        _dbContext.Users.Update(user);
+
+        if (revokeRefreshTokens)
+        {
+            var now = DateTime.UtcNow;
+            var activeRefreshTokens = await _dbContext.RefreshTokens
+                .Where(refreshToken =>
+                    refreshToken.UserId == user.Id &&
+                    refreshToken.RevokedAt == null &&
+                    refreshToken.ExpiresAt > now)
+                .ToListAsync();
+
+            foreach (var refreshToken in activeRefreshTokens)
+            {
+                refreshToken.RevokedAt = now;
+            }
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
 }

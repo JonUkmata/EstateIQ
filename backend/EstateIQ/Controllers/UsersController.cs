@@ -136,4 +136,35 @@ public class UsersController(
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating agent.");
         }
     }
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = Permissions.ManageUsers)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(UpdateUserStatusResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<UpdateUserStatusResponseDto>> UpdateStatus(Guid id, [FromBody] UpdateUserStatusRequestDto request)
+    {
+        try
+        {
+            var status = await _userService.UpdateUserStatusAsync(id, request);
+            return Ok(status);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error updating user {UserId} active status.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating user status.");
+        }
+    }
 }
