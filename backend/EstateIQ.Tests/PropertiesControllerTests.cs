@@ -1,9 +1,12 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using EstateIQ.Constants;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
 using EstateIQ.Models;
+using EstateIQ.Services.Auth;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -11,12 +14,22 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace EstateIQ.Tests;
 
 public class PropertiesControllerTests
 {
+    private static readonly JwtSettings TestJwtSettings = new()
+    {
+        Issuer = "EstateIQ",
+        Audience = "EstateIQ",
+        Key = "EstateIQ-Development-Jwt-Key-Replace-In-Production-2026",
+        AccessTokenMinutes = 15,
+        RefreshTokenDays = 7
+    };
+
     [Fact]
     public async Task GetProperties_ReturnsSeededProperties()
     {
@@ -122,6 +135,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         await factory.SeedReferenceDataAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.CreateProperty);
 
         var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
 
@@ -142,6 +156,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         var propertyId = await factory.SeedPropertyAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.EditProperty);
 
         var updateDto = BuildUpdateDto();
         var response = await client.PutAsJsonAsync($"/api/properties/{propertyId}", updateDto);
@@ -174,6 +189,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         var propertyId = await factory.SeedPropertyAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.EditProperty);
 
         var invalidDto = BuildUpdateDto();
         invalidDto.Title = string.Empty;
@@ -190,6 +206,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         await factory.SeedReferenceDataAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.EditProperty);
 
         var updateDto = BuildUpdateDto();
         var response = await client.PutAsJsonAsync("/api/properties/999", updateDto);
@@ -203,6 +220,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         var propertyId = await factory.SeedPropertyAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.DeleteProperty);
 
         var response = await client.DeleteAsync($"/api/properties/{propertyId}");
 
@@ -218,6 +236,7 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         await factory.ResetDatabaseAsync();
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.DeleteProperty);
 
         var response = await client.DeleteAsync("/api/properties/999");
 
@@ -230,11 +249,66 @@ public class PropertiesControllerTests
         await using var factory = new EstateIqWebApplicationFactory();
         var propertyId = await factory.SeedPropertyAsync(propertyStatusId: 6);
         using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.DeleteProperty);
 
         var response = await client.DeleteAsync($"/api/properties/{propertyId}");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal("Sold, rented, or under-contract properties cannot be deleted.", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task CreateProperty_WithoutToken_ReturnsUnauthorized()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedReferenceDataAsync();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateProperty_WithUserPermissionSet_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.SeedReferenceDataAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ViewProperties, Permissions.BookViewing);
+
+        var response = await client.PostAsJsonAsync("/api/properties", BuildCreateDto());
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WriteEndpoints_WithoutToken_ReturnUnauthorized()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+
+        var putResponse = await client.PutAsJsonAsync($"/api/properties/{propertyId}", BuildUpdateDto());
+        var deleteResponse = await client.DeleteAsync($"/api/properties/{propertyId}");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, putResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task WriteEndpoints_WithUserPermissionSet_ReturnForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ViewProperties, Permissions.BookViewing);
+
+        var putResponse = await client.PutAsJsonAsync($"/api/properties/{propertyId}", BuildUpdateDto());
+        var deleteResponse = await client.DeleteAsync($"/api/properties/{propertyId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, putResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
     }
 
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
@@ -486,5 +560,26 @@ public class PropertiesControllerTests
             Latitude = 41.323m,
             Longitude = 19.441m
         };
+    }
+
+    private static void AddBearerToken(HttpClient client, params string[] permissions)
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            GenerateToken(permissions));
+    }
+
+    private static string GenerateToken(params string[] permissions)
+    {
+        var tokenService = new TokenService(Options.Create(TestJwtSettings));
+
+        return tokenService.GenerateAccessToken(
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "property-test@example.com"
+            },
+            [Roles.Agent],
+            permissions);
     }
 }

@@ -1,6 +1,8 @@
+using EstateIQ.Constants;
 using EstateIQ.DTOs;
 using EstateIQ.Exceptions;
 using EstateIQ.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ValidationException = EstateIQ.Exceptions.ValidationException;
 
@@ -80,6 +82,7 @@ public class PropertiesController(
     /// <param name="dto">The property creation payload.</param>
     /// <returns>The created property with related lookup data.</returns>
     [HttpPost]
+    [Authorize(Policy = Permissions.CreateProperty)]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
@@ -114,6 +117,7 @@ public class PropertiesController(
     /// <param name="dto">The property update payload.</param>
     /// <returns>The updated property with related lookup data.</returns>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = Permissions.EditProperty)]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
@@ -152,6 +156,7 @@ public class PropertiesController(
     /// <param name="id">The property identifier.</param>
     /// <returns>No content when the property is deleted.</returns>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = Permissions.DeleteProperty)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
