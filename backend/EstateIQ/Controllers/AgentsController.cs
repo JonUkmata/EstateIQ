@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EstateIQ.Controllers;
 
 /// <summary>
-/// Provides agent lookup endpoints for frontend dropdowns.
+/// Provides public readonly agent lookup endpoints for frontend dropdowns.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
