@@ -63,4 +63,15 @@ public class AuthRepository(AppDbContext dbContext) : IAuthRepository
 
         await _dbContext.SaveChangesAsync();
     }
+
+    public Task<RefreshToken?> GetRefreshTokenByHashWithUserAuthDetailsAsync(string tokenHash)
+    {
+        return _dbContext.RefreshTokens
+            .Include(refreshToken => refreshToken.User)
+                .ThenInclude(user => user.UserRoles)
+                    .ThenInclude(userRole => userRole.Role)
+                        .ThenInclude(role => role.RolePermissions)
+                            .ThenInclude(rolePermission => rolePermission.Permission)
+            .SingleOrDefaultAsync(refreshToken => refreshToken.TokenHash == tokenHash);
+    }
 }

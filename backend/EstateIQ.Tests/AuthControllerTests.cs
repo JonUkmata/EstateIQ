@@ -135,6 +135,66 @@ public class AuthControllerTests
         Assert.NotEqual(loginResult.RefreshToken, refreshToken.TokenHash);
     }
 
+    [Fact]
+    public async Task Refresh_ValidBodyRefreshToken_ReturnsNewAccessToken()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var loginResult = await RegisterVerifyAndLoginAsync(client);
+
+        var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequestDto
+        {
+            RefreshToken = loginResult.RefreshToken
+        });
+
+        Assert.Equal(HttpStatusCode.OK, refreshResponse.StatusCode);
+
+        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshTokenResponseDto>();
+        Assert.NotNull(refreshResult);
+        Assert.False(string.IsNullOrWhiteSpace(refreshResult!.AccessToken));
+        Assert.True(refreshResult.ExpiresAt > DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task Refresh_MissingRefreshToken_ReturnsUnauthorized()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+
+        var refreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequestDto());
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
+    }
+
+    private static async Task<LoginResponseDto> RegisterVerifyAndLoginAsync(HttpClient client)
+    {
+        var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequestDto
+        {
+            FirstName = "Jon",
+            LastName = "Ukmata",
+            Email = "jon@example.com",
+            Password = "Password123!",
+            ConfirmPassword = "Password123!"
+        });
+        var registerResult = await registerResponse.Content.ReadFromJsonAsync<RegisterResponseDto>();
+        await client.PostAsJsonAsync("/api/auth/verify-email", new VerifyEmailRequestDto
+        {
+            Token = registerResult!.VerificationToken
+        });
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+        {
+            Email = "jon@example.com",
+            Password = "Password123!"
+        });
+
+        var loginResult = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        return loginResult!;
+    }
+
     private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();

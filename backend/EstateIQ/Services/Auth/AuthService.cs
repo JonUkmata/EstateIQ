@@ -201,6 +201,37 @@ public class AuthService(
         };
     }
 
+    public async Task<RefreshTokenResponseDto> RefreshAsync(RefreshTokenRequestDto request)
+    {
+        ValidateRefreshRequest(request);
+
+        var tokenHash = _tokenService.HashToken(request.RefreshToken!.Trim());
+        var refreshToken = await _authRepository.GetRefreshTokenByHashWithUserAuthDetailsAsync(tokenHash);
+
+        if (refreshToken is null || refreshToken.RevokedAt is not null || refreshToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            throw new BusinessRuleException("Refresh token is invalid.");
+        }
+
+        if (refreshToken.User is null || !refreshToken.User.IsActive)
+        {
+            throw new BusinessRuleException("Refresh token is invalid.");
+        }
+
+        var roles = GetCurrentRoleNames(refreshToken.User);
+        var permissions = GetCurrentPermissionNames(refreshToken.User);
+        var accessToken = _tokenService.GenerateAccessToken(refreshToken.User, roles, permissions);
+        var expiresAt = _tokenService.GetAccessTokenExpirationUtc();
+
+        _logger.LogInformation("Refreshed access token for user {UserId}.", refreshToken.UserId);
+
+        return new RefreshTokenResponseDto
+        {
+            AccessToken = accessToken,
+            ExpiresAt = expiresAt
+        };
+    }
+
     private static void ValidateRegisterRequest(RegisterRequestDto request)
     {
         var errors = new Dictionary<string, string[]>();
@@ -262,12 +293,42 @@ public class AuthService(
         }
     }
 
+    private static void ValidateRefreshRequest(RefreshTokenRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.RefreshToken)] = ["RefreshToken is required."]
+            });
+        }
+    }
+
     private static ValidationException CreateInvalidCredentialsException()
     {
         return new ValidationException(new Dictionary<string, string[]>
         {
             [nameof(LoginRequestDto.Email)] = ["Email or password is invalid."]
         });
+    }
+
+    private static string[] GetCurrentRoleNames(User user)
+    {
+        return user.UserRoles
+            .Select(userRole => userRole.Role.Name)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static string[] GetCurrentPermissionNames(User user)
+    {
+        return user.UserRoles
+            .SelectMany(userRole => userRole.Role.RolePermissions)
+            .Select(rolePermission => rolePermission.Permission.Name)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static void AddRequiredStringError(
