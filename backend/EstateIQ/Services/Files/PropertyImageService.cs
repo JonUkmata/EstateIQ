@@ -12,30 +12,15 @@ namespace EstateIQ.Services.Files;
 public class PropertyImageService(
     IPropertyRepository propertyRepository,
     IFileRepository fileRepository,
+    IFileValidationService fileValidationService,
     IWebHostEnvironment webHostEnvironment,
     ILogger<PropertyImageService> logger) : IPropertyImageService
 {
     private const string PropertyEntity = "Property";
-    private const int MaxImagesPerProperty = 10;
-    private const long MaxFileSize = 5 * 1024 * 1024;
-
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".webp"
-    };
-
-    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "image/jpeg",
-        "image/png",
-        "image/webp"
-    };
 
     private readonly IPropertyRepository _propertyRepository = propertyRepository;
     private readonly IFileRepository _fileRepository = fileRepository;
+    private readonly IFileValidationService _fileValidationService = fileValidationService;
     private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
     private readonly ILogger<PropertyImageService> _logger = logger;
 
@@ -46,18 +31,9 @@ public class PropertyImageService(
             throw new NotFoundException($"Property with id {propertyId} was not found.");
         }
 
-        ValidateFiles(files);
-
         var entityId = CreatePropertyEntityId(propertyId);
         var existingImageCount = await _fileRepository.CountByEntityAsync(PropertyEntity, entityId);
-
-        if (existingImageCount + files.Count > MaxImagesPerProperty)
-        {
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                [nameof(files)] = [$"A property can have at most {MaxImagesPerProperty} images."]
-            });
-        }
+        _fileValidationService.ValidatePropertyImages(files, existingImageCount);
 
         var uploadsRoot = GetUploadsRoot(propertyId);
         Directory.CreateDirectory(uploadsRoot);
@@ -113,50 +89,6 @@ public class PropertyImageService(
                 FileSize = file.FileSize
             })
             .ToList();
-    }
-
-    private static void ValidateFiles(IReadOnlyCollection<IFormFile> files)
-    {
-        var errors = new Dictionary<string, string[]>();
-
-        if (files.Count == 0)
-        {
-            errors[nameof(files)] = ["At least one file is required."];
-            throw new ValidationException(errors);
-        }
-
-        var fileErrors = new List<string>();
-
-        foreach (var file in files)
-        {
-            if (file.Length <= 0)
-            {
-                fileErrors.Add($"{file.FileName}: File cannot be empty.");
-            }
-
-            if (file.Length > MaxFileSize)
-            {
-                fileErrors.Add($"{file.FileName}: File size cannot exceed 5 MB.");
-            }
-
-            var extension = Path.GetExtension(file.FileName);
-
-            if (!AllowedExtensions.Contains(extension))
-            {
-                fileErrors.Add($"{file.FileName}: File extension is not allowed.");
-            }
-
-            if (!AllowedContentTypes.Contains(file.ContentType))
-            {
-                fileErrors.Add($"{file.FileName}: Content type is not allowed.");
-            }
-        }
-
-        if (fileErrors.Count > 0)
-        {
-            errors[nameof(files)] = fileErrors.Distinct().ToArray();
-            throw new ValidationException(errors);
-        }
     }
 
     private string GetUploadsRoot(int propertyId)
