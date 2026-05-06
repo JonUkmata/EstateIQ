@@ -67,4 +67,24 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
 
         await _dbContext.SaveChangesAsync();
     }
+
+    public Task<bool> CompanyUserExistsAsync(Guid userId, int companyId, string relationshipType)
+    {
+        return _dbContext.CompanyUsers
+            .AsNoTracking()
+            .AnyAsync(companyUser =>
+                companyUser.UserId == userId &&
+                companyUser.CompanyId == companyId &&
+                companyUser.RelationshipType == relationshipType);
+    }
+
+    public async Task AddAgentUserAsync(User user, UserRole userRole, Agent agent, AgentCompany agentCompany)
+    {
+        _dbContext.Users.Add(user);
+        _dbContext.UserRoles.Add(userRole);
+        _dbContext.Agents.Add(agent);
+        _dbContext.AgentCompanies.Add(agentCompany);
+
+        await _dbContext.SaveChangesAsync();
+    }
 }

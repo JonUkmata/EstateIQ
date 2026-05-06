@@ -4,6 +4,8 @@ public class Agent
 {
     public int Id { get; set; }
 
+    public Guid? UserId { get; set; }
+
     public string FirstName { get; set; } = string.Empty;
 
     public string LastName { get; set; } = string.Empty;
@@ -23,6 +25,8 @@ public class Agent
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public User? User { get; set; }
 
     public ICollection<AgentCompany> AgentCompanies { get; set; } = new List<AgentCompany>();
 

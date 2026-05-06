@@ -13,6 +13,8 @@ public class UserService(
 {
     private const string CompanyAdminRoleName = "CompanyAdmin";
     private const string CompanyAdminRelationshipType = "CompanyAdmin";
+    private const string AgentRoleName = "Agent";
+    private const string AgentCompanyRoleName = "Agent";
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IPasswordService _passwordService = passwordService;
 
@@ -113,6 +115,83 @@ public class UserService(
         };
     }
 
+    public async Task<CreateAgentResponseDto> CreateAgentAsync(CreateAgentRequestDto request, Guid currentUserId, bool isAdmin)
+    {
+        ValidateCreateAgentRequest(request);
+
+        if (!await _userRepository.CompanyExistsAsync(request.CompanyId))
+        {
+            throw new NotFoundException($"Company with id {request.CompanyId} was not found.");
+        }
+
+        if (!isAdmin &&
+            !await _userRepository.CompanyUserExistsAsync(currentUserId, request.CompanyId, CompanyAdminRelationshipType))
+        {
+            throw new BusinessRuleException("CompanyAdmin can only create agents for their own company.");
+        }
+
+        var normalizedEmail = NormalizeEmail(request.Email);
+
+        if (await _userRepository.EmailExistsAsync(normalizedEmail))
+        {
+            throw new BusinessRuleException("Email is already registered.");
+        }
+
+        var role = await _userRepository.GetRoleByNameAsync(AgentRoleName)
+            ?? throw new BusinessRuleException("Agent role is not configured.");
+
+        var now = DateTime.UtcNow;
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            Email = normalizedEmail,
+            IsActive = true,
+            IsEmailConfirmed = true,
+            CreatedAt = now
+        };
+        user.PasswordHash = _passwordService.HashPassword(user, request.Password);
+
+        var userRole = new UserRole
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            RoleId = role.Id,
+            AssignedAt = now
+        };
+
+        var agent = new Agent
+        {
+            UserId = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+            IsActive = true,
+            CreatedAt = now
+        };
+
+        var agentCompany = new AgentCompany
+        {
+            Agent = agent,
+            CompanyId = request.CompanyId,
+            Role = AgentCompanyRoleName,
+            IsActive = true,
+            CreatedAt = now
+        };
+
+        await _userRepository.AddAgentUserAsync(user, userRole, agent, agentCompany);
+
+        return new CreateAgentResponseDto
+        {
+            UserId = user.Id,
+            AgentId = agent.Id,
+            Email = user.Email,
+            CompanyId = request.CompanyId
+        };
+    }
+
     private static void ValidateQueryParameters(UserListQueryParameters queryParameters)
     {
         var errors = new Dictionary<string, string[]>();
@@ -154,6 +233,41 @@ public class UserService(
         if (passwordErrors.Length > 0)
         {
             errors[nameof(request.Password)] = passwordErrors;
+        }
+
+        if (request.CompanyId <= 0)
+        {
+            errors[nameof(request.CompanyId)] = ["CompanyId is required."];
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateCreateAgentRequest(CreateAgentRequestDto request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        AddRequiredStringError(errors, nameof(request.FirstName), request.FirstName, 100);
+        AddRequiredStringError(errors, nameof(request.LastName), request.LastName, 100);
+        AddRequiredStringError(errors, nameof(request.Email), request.Email, 255);
+
+        if (!string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email.Trim()))
+        {
+            errors[nameof(request.Email)] = ["Email must be a valid email address."];
+        }
+
+        var passwordErrors = GetPasswordErrors(request.Password).ToArray();
+        if (passwordErrors.Length > 0)
+        {
+            errors[nameof(request.Password)] = passwordErrors;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Phone) && request.Phone.Trim().Length > 50)
+        {
+            errors[nameof(request.Phone)] = ["Phone must be 50 characters or fewer."];
         }
 
         if (request.CompanyId <= 0)
