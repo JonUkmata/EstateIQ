@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const links = [
   { label: 'Home', to: '/' },
@@ -8,6 +9,8 @@ const links = [
 ]
 
 export default function Sidebar() {
+  const { user } = useAuth()
+
   return (
     <aside className="sidebar">
       <div className="sidebar-card">
@@ -25,6 +28,12 @@ export default function Sidebar() {
             </NavLink>
           ))}
         </nav>
+        {user ? (
+          <div className="sidebar-auth-card">
+            <span>{user.email}</span>
+            <small>{user.roles.length > 0 ? user.roles.join(', ') : 'User'}</small>
+          </div>
+        ) : null}
       </div>
     </aside>
   )

@@ -1,6 +1,11 @@
-import type { RegisterRequest, RegisterResponse } from '../types/auth'
+import type { LoginRequest, LoginResponse, LogoutResponse, RegisterRequest, RegisterResponse } from '../types/auth'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+let accessToken: string | null = null
+
+export function setApiAccessToken(token: string | null) {
+  accessToken = token
+}
 
 function buildApiUrl(path: string) {
   return `${apiBaseUrl}${path}`
@@ -69,6 +74,9 @@ async function fetchJson<T>(path: string, options: RequestInit = {}) {
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
 
   let response: Response
   try {
@@ -93,6 +101,9 @@ async function fetchText(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers)
   if (!headers.has('Accept')) {
     headers.set('Accept', 'text/plain')
+  }
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
   let response: Response
@@ -355,5 +366,25 @@ export async function registerUser(payload: RegisterRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function loginUser(payload: LoginRequest) {
+  return fetchJson<LoginResponse>('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function logoutUser(refreshToken?: string) {
+  return fetchJson<LogoutResponse>('/api/auth/logout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken: refreshToken ?? null }),
   })
 }

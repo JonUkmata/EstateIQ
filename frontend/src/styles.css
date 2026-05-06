@@ -92,7 +92,33 @@ a {
   color: #274638;
 }
 
+.top-nav-button {
+  min-height: 44px;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(24, 53, 41, 0.15);
+  border-radius: 999px;
+  background: rgba(211, 235, 217, 0.9);
+  color: #11251c;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.top-nav-user {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(24, 53, 41, 0.1);
+  border-radius: 999px;
+  background: rgba(245, 249, 243, 0.88);
+  color: #38584a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .top-nav-link:hover,
+.top-nav-button:hover,
 .cta-link:hover,
 .sidebar-link:hover {
   transform: translateY(-1px);
@@ -145,6 +171,30 @@ a {
   color: #11251c;
   border-color: rgba(41, 103, 73, 0.24);
   background: rgba(211, 235, 217, 0.9);
+}
+
+.sidebar-auth-card {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(24, 53, 41, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.sidebar-auth-card span {
+  overflow-wrap: anywhere;
+  color: #163126;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sidebar-auth-card small {
+  color: #4a7861;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .content-shell {
@@ -1007,6 +1057,10 @@ a {
 
 .auth-form {
   padding-top: 0.2rem;
+}
+
+.login-form {
+  grid-template-columns: 1fr;
 }
 
 .auth-actions {
