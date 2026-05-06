@@ -1,4 +1,12 @@
-import type { LoginRequest, LoginResponse, LogoutResponse, RegisterRequest, RegisterResponse } from '../types/auth'
+import type {
+  LoginRequest,
+  LoginResponse,
+  LogoutResponse,
+  RegisterRequest,
+  RegisterResponse,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
+} from '../types/auth'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 let accessToken: string | null = null
@@ -361,6 +369,16 @@ export async function updateProperty(id: number, payload: UpdatePropertyPayload)
 
 export async function registerUser(payload: RegisterRequest) {
   return fetchJson<RegisterResponse>('/api/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function verifyEmail(payload: VerifyEmailRequest) {
+  return fetchJson<VerifyEmailResponse>('/api/auth/verify-email', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

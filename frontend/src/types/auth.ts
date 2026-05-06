@@ -11,6 +11,14 @@ export type RegisterResponse = {
   verificationToken: string
 }
 
+export type VerifyEmailRequest = {
+  token: string
+}
+
+export type VerifyEmailResponse = {
+  message: string
+}
+
 export type LoginRequest = {
   email: string
   password: string

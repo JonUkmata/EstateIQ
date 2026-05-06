@@ -8,6 +8,7 @@ import MapPage from '../pages/MapPage'
 import PropertyDetailsPage from '../pages/PropertyDetailsPage'
 import PropertiesPage from '../pages/PropertiesPage'
 import RegisterPage from '../pages/RegisterPage'
+import VerifyEmailPage from '../pages/VerifyEmailPage'
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Routes>
     </BrowserRouter>
   )
