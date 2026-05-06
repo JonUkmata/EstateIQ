@@ -215,6 +215,14 @@ app.MapGet("/api/test/permissions/manage-users", () => "ManageUsers permission g
     .RequireAuthorization(Permissions.ManageUsers)
     .WithName("GetManageUsersPermissionTest");
 
+app.MapGet("/api/test/permissions/manage-companies", () => "ManageCompanies permission granted")
+    .RequireAuthorization(Permissions.ManageCompanies)
+    .WithName("GetManageCompaniesPermissionTest");
+
+app.MapGet("/api/test/permissions/manage-agents", () => "ManageAgents permission granted")
+    .RequireAuthorization(Permissions.ManageAgents)
+    .WithName("GetManageAgentsPermissionTest");
+
 app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
 {
     var canConnect = await dbContext.Database.CanConnectAsync();
