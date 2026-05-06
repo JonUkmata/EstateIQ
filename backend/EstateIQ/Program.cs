@@ -3,8 +3,10 @@ using AutoMapper;
 using EstateIQ.Data;
 using EstateIQ.Interfaces;
 using EstateIQ.Mappings;
+using EstateIQ.Models;
 using EstateIQ.Repositories;
 using EstateIQ.Services;
+using EstateIQ.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
@@ -50,6 +52,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
