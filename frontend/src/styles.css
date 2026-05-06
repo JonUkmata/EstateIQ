@@ -1063,6 +1063,10 @@ a {
   grid-template-columns: 1fr;
 }
 
+.verify-form {
+  grid-template-columns: 1fr;
+}
+
 .auth-actions {
   align-items: center;
   justify-content: space-between;
