@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -88,6 +88,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 })
 
 export default function PropertiesPage() {
+  const navigate = useNavigate()
   const { hasPermission } = useAuth()
   const canCreateProperty = hasPermission(Permissions.CreateProperty)
   const canEditProperty = hasPermission(Permissions.EditProperty)
@@ -302,6 +303,7 @@ export default function PropertiesPage() {
       setFormErrors({})
       setSubmitState('success')
       setSubmitMessage('Property created successfully.')
+      navigate(`/properties/${createdProperty.id}`)
     } catch (error) {
       setSubmitState('error')
       setSubmitMessage(error instanceof Error ? error.message : 'Failed to create property.')

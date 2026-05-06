@@ -901,12 +901,27 @@ a {
   background: rgba(248, 251, 246, 0.94);
 }
 
-.property-image-card img {
+.property-image-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.property-image-button:hover img {
+  transform: scale(1.025);
+}
+
+.property-image-card img,
+.property-image-button img {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   background: rgba(211, 235, 217, 0.45);
+  transition: transform 0.2s ease;
 }
 
 .property-image-card figcaption {
@@ -977,6 +992,93 @@ a {
   color: #4a7861;
   font-size: 0.82rem;
   white-space: nowrap;
+}
+
+.image-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(17, 37, 28, 0.72);
+}
+
+.image-lightbox {
+  display: grid;
+  width: min(1040px, 100%);
+  max-height: calc(100vh - 2.5rem);
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.34);
+}
+
+.image-lightbox-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.image-lightbox-header .panel-label {
+  margin-bottom: 0.3rem;
+}
+
+.image-lightbox-header h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #163126;
+  font-size: 1.2rem;
+}
+
+.image-lightbox-header button,
+.image-lightbox-nav {
+  min-height: 42px;
+  padding: 0.68rem 0.95rem;
+  border: 1px solid rgba(24, 53, 41, 0.15);
+  border-radius: 12px;
+  background: rgba(245, 249, 243, 0.94);
+  color: #274638;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.image-lightbox-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: min(68vh, 680px);
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(17, 37, 28, 0.08);
+}
+
+.image-lightbox-stage img {
+  display: block;
+  width: 100%;
+  height: min(68vh, 680px);
+  object-fit: cover;
+}
+
+.image-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.image-lightbox-nav-prev {
+  left: 0.75rem;
+}
+
+.image-lightbox-nav-next {
+  right: 0.75rem;
 }
 
 .table-action-danger:disabled {
@@ -1422,5 +1524,32 @@ a {
   .auth-actions .cta-link,
   .auth-success .table-action-link {
     width: 100%;
+  }
+
+  .image-lightbox {
+    padding: 0.75rem;
+  }
+
+  .image-lightbox-header {
+    flex-direction: column;
+  }
+
+  .image-lightbox-header button,
+  .image-lightbox-nav {
+    width: 100%;
+  }
+
+  .image-lightbox-stage {
+    align-items: end;
+    gap: 0.5rem;
+    min-height: 420px;
+    padding-bottom: 3.25rem;
+  }
+
+  .image-lightbox-nav {
+    top: auto;
+    bottom: 0.65rem;
+    width: calc(50% - 1rem);
+    transform: none;
   }
 }

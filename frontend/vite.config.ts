@@ -13,6 +13,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/uploads': {
+          target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:5222',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
   }
