@@ -22,6 +22,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     private static readonly Guid ViewPropertiesPermissionId = Guid.Parse("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d");
     private static readonly Guid BookViewingPermissionId = Guid.Parse("3f5a7c9e-1b0d-44f6-8a2c-9f1e3d5b7a0c");
 
+    private static readonly Guid AdminManageUsersRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e501");
+    private static readonly Guid AdminManageCompaniesRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e502");
+    private static readonly Guid AdminManageAgentsRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e503");
+    private static readonly Guid AdminCreatePropertyRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e504");
+    private static readonly Guid AdminEditPropertyRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e505");
+    private static readonly Guid AdminDeletePropertyRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e506");
+    private static readonly Guid AdminUploadPropertyImagesRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e507");
+    private static readonly Guid AdminViewPropertiesRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e508");
+    private static readonly Guid AdminBookViewingRolePermissionId = Guid.Parse("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e509");
+
+    private static readonly Guid CompanyAdminManageAgentsRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c601");
+    private static readonly Guid CompanyAdminCreatePropertyRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c602");
+    private static readonly Guid CompanyAdminEditPropertyRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c603");
+    private static readonly Guid CompanyAdminDeletePropertyRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c604");
+    private static readonly Guid CompanyAdminUploadPropertyImagesRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c605");
+    private static readonly Guid CompanyAdminViewPropertiesRolePermissionId = Guid.Parse("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c606");
+
+    private static readonly Guid AgentCreatePropertyRolePermissionId = Guid.Parse("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d701");
+    private static readonly Guid AgentEditPropertyRolePermissionId = Guid.Parse("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d702");
+    private static readonly Guid AgentDeletePropertyRolePermissionId = Guid.Parse("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d703");
+    private static readonly Guid AgentUploadPropertyImagesRolePermissionId = Guid.Parse("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d704");
+    private static readonly Guid AgentViewPropertiesRolePermissionId = Guid.Parse("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d705");
+
+    private static readonly Guid UserViewPropertiesRolePermissionId = Guid.Parse("d6c9f4a7-8e01-4c32-9d5f-a7b8c9d0e801");
+    private static readonly Guid UserBookViewingRolePermissionId = Guid.Parse("d6c9f4a7-8e01-4c32-9d5f-a7b8c9d0e802");
+
     public DbSet<Company> Companies => Set<Company>();
 
     public DbSet<Agent> Agents => Set<Agent>();
@@ -40,8 +66,78 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Permission> Permissions => Set<Permission>();
 
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.ToTable("UserRoles");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.AssignedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(x => new { x.UserId, x.RoleId })
+                .IsUnique()
+                .HasDatabaseName("IX_UserRoles_UserId_RoleId");
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.UserRoles)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Role)
+                .WithMany(x => x.UserRoles)
+                .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermissions");
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => new { x.RoleId, x.PermissionId })
+                .IsUnique()
+                .HasDatabaseName("IX_RolePermissions_RoleId_PermissionId");
+
+            entity.HasOne(x => x.Role)
+                .WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Permission)
+                .WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new RolePermission { Id = AdminManageUsersRolePermissionId, RoleId = AdminRoleId, PermissionId = ManageUsersPermissionId },
+                new RolePermission { Id = AdminManageCompaniesRolePermissionId, RoleId = AdminRoleId, PermissionId = ManageCompaniesPermissionId },
+                new RolePermission { Id = AdminManageAgentsRolePermissionId, RoleId = AdminRoleId, PermissionId = ManageAgentsPermissionId },
+                new RolePermission { Id = AdminCreatePropertyRolePermissionId, RoleId = AdminRoleId, PermissionId = CreatePropertyPermissionId },
+                new RolePermission { Id = AdminEditPropertyRolePermissionId, RoleId = AdminRoleId, PermissionId = EditPropertyPermissionId },
+                new RolePermission { Id = AdminDeletePropertyRolePermissionId, RoleId = AdminRoleId, PermissionId = DeletePropertyPermissionId },
+                new RolePermission { Id = AdminUploadPropertyImagesRolePermissionId, RoleId = AdminRoleId, PermissionId = UploadPropertyImagesPermissionId },
+                new RolePermission { Id = AdminViewPropertiesRolePermissionId, RoleId = AdminRoleId, PermissionId = ViewPropertiesPermissionId },
+                new RolePermission { Id = AdminBookViewingRolePermissionId, RoleId = AdminRoleId, PermissionId = BookViewingPermissionId },
+                new RolePermission { Id = CompanyAdminManageAgentsRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = ManageAgentsPermissionId },
+                new RolePermission { Id = CompanyAdminCreatePropertyRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = CreatePropertyPermissionId },
+                new RolePermission { Id = CompanyAdminEditPropertyRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = EditPropertyPermissionId },
+                new RolePermission { Id = CompanyAdminDeletePropertyRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = DeletePropertyPermissionId },
+                new RolePermission { Id = CompanyAdminUploadPropertyImagesRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = UploadPropertyImagesPermissionId },
+                new RolePermission { Id = CompanyAdminViewPropertiesRolePermissionId, RoleId = CompanyAdminRoleId, PermissionId = ViewPropertiesPermissionId },
+                new RolePermission { Id = AgentCreatePropertyRolePermissionId, RoleId = AgentRoleId, PermissionId = CreatePropertyPermissionId },
+                new RolePermission { Id = AgentEditPropertyRolePermissionId, RoleId = AgentRoleId, PermissionId = EditPropertyPermissionId },
+                new RolePermission { Id = AgentDeletePropertyRolePermissionId, RoleId = AgentRoleId, PermissionId = DeletePropertyPermissionId },
+                new RolePermission { Id = AgentUploadPropertyImagesRolePermissionId, RoleId = AgentRoleId, PermissionId = UploadPropertyImagesPermissionId },
+                new RolePermission { Id = AgentViewPropertiesRolePermissionId, RoleId = AgentRoleId, PermissionId = ViewPropertiesPermissionId },
+                new RolePermission { Id = UserViewPropertiesRolePermissionId, RoleId = UserRoleId, PermissionId = ViewPropertiesPermissionId },
+                new RolePermission { Id = UserBookViewingRolePermissionId, RoleId = UserRoleId, PermissionId = BookViewingPermissionId });
+        });
+
         modelBuilder.Entity<Role>(entity =>
         {
             entity.ToTable("Roles");
