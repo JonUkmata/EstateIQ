@@ -132,6 +132,75 @@ public class AuthService(
         };
     }
 
+    public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
+    {
+        ValidateLoginRequest(request);
+
+        var normalizedEmail = NormalizeEmail(request.Email);
+        var user = await _authRepository.GetUserByEmailWithAuthDetailsAsync(normalizedEmail);
+
+        if (user is null || !_passwordService.VerifyPassword(user, user.PasswordHash, request.Password))
+        {
+            throw CreateInvalidCredentialsException();
+        }
+
+        if (!user.IsActive)
+        {
+            throw new BusinessRuleException("Account is inactive.");
+        }
+
+        if (!user.IsEmailConfirmed)
+        {
+            throw new BusinessRuleException("Email is not verified.");
+        }
+
+        var roles = user.UserRoles
+            .Select(userRole => userRole.Role.Name)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        var permissions = user.UserRoles
+            .SelectMany(userRole => userRole.Role.RolePermissions)
+            .Select(rolePermission => rolePermission.Permission.Name)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        var accessToken = _tokenService.GenerateAccessToken(user, roles, permissions);
+        var expiresAt = _tokenService.GetAccessTokenExpirationUtc();
+        var refreshToken = _tokenService.GenerateRefreshToken();
+        var refreshTokenExpiresAt = _tokenService.GetRefreshTokenExpirationUtc();
+
+        await _authRepository.AddRefreshTokenAsync(new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = _tokenService.HashToken(refreshToken),
+            ExpiresAt = refreshTokenExpiresAt,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        _logger.LogInformation("User {UserId} logged in successfully.", user.Id);
+
+        return new LoginResponseDto
+        {
+            AccessToken = accessToken,
+            ExpiresAt = expiresAt,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiresAt = refreshTokenExpiresAt,
+            User = new AuthUserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Roles = roles,
+                Permissions = permissions
+            }
+        };
+    }
+
     private static void ValidateRegisterRequest(RegisterRequestDto request)
     {
         var errors = new Dictionary<string, string[]>();
@@ -171,6 +240,34 @@ public class AuthService(
                 [nameof(request.Token)] = ["Token is required."]
             });
         }
+    }
+
+    private static void ValidateLoginRequest(LoginRequestDto request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            errors[nameof(request.Email)] = ["Email is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            errors[nameof(request.Password)] = ["Password is required."];
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static ValidationException CreateInvalidCredentialsException()
+    {
+        return new ValidationException(new Dictionary<string, string[]>
+        {
+            [nameof(LoginRequestDto.Email)] = ["Email or password is invalid."]
+        });
     }
 
     private static void AddRequiredStringError(
