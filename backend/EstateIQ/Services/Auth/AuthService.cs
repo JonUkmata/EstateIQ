@@ -79,6 +79,59 @@ public class AuthService(
         };
     }
 
+    public async Task<VerifyEmailResponseDto> VerifyEmailAsync(VerifyEmailRequestDto request)
+    {
+        ValidateVerifyEmailRequest(request);
+
+        var normalizedToken = request.Token.Trim();
+        var emailVerificationToken = await _authRepository.GetEmailVerificationTokenAsync(normalizedToken);
+
+        if (emailVerificationToken is null)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.Token)] = ["Verification token is invalid."]
+            });
+        }
+
+        if (emailVerificationToken.User is null)
+        {
+            throw new NotFoundException("User linked to verification token was not found.");
+        }
+
+        if (emailVerificationToken.UsedAt is not null)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.Token)] = ["Verification token has already been used."]
+            });
+        }
+
+        if (emailVerificationToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.Token)] = ["Verification token has expired."]
+            });
+        }
+
+        emailVerificationToken.User.IsEmailConfirmed = true;
+        emailVerificationToken.User.UpdatedAt = DateTime.UtcNow;
+        emailVerificationToken.UsedAt = DateTime.UtcNow;
+
+        await _authRepository.UpdateEmailVerificationAsync(emailVerificationToken.User, emailVerificationToken);
+
+        _logger.LogInformation(
+            "Verified email for user {UserId} with token {EmailVerificationTokenId}.",
+            emailVerificationToken.UserId,
+            emailVerificationToken.Id);
+
+        return new VerifyEmailResponseDto
+        {
+            Message = "Email verified successfully. You can now login."
+        };
+    }
+
     private static void ValidateRegisterRequest(RegisterRequestDto request)
     {
         var errors = new Dictionary<string, string[]>();
@@ -106,6 +159,17 @@ public class AuthService(
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateVerifyEmailRequest(VerifyEmailRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                [nameof(request.Token)] = ["Token is required."]
+            });
         }
     }
 

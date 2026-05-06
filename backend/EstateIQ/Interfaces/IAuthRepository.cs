@@ -8,5 +8,9 @@ public interface IAuthRepository
 
     Task<Role?> GetRoleByNameAsync(string roleName);
 
+    Task<EmailVerificationToken?> GetEmailVerificationTokenAsync(string token);
+
     Task AddRegistrationAsync(User user, UserRole userRole, EmailVerificationToken emailVerificationToken);
+
+    Task UpdateEmailVerificationAsync(User user, EmailVerificationToken emailVerificationToken);
 }
