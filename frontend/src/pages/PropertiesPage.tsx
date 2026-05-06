@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Permissions } from '../constants/auth'
+import { useAuth } from '../context/AuthContext'
 import {
   createProperty,
   deleteProperty,
@@ -86,6 +88,10 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 })
 
 export default function PropertiesPage() {
+  const { hasPermission } = useAuth()
+  const canCreateProperty = hasPermission(Permissions.CreateProperty)
+  const canEditProperty = hasPermission(Permissions.EditProperty)
+  const canDeleteProperty = hasPermission(Permissions.DeleteProperty)
   const [properties, setProperties] = useState<Property[]>([])
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
   const [propertyStatuses, setPropertyStatuses] = useState<PropertyStatus[]>([])
@@ -121,20 +127,27 @@ export default function PropertiesPage() {
       try {
         setErrorMessage('')
 
-        const [typesResult, statusesResult, companiesResult, agentsResult, propertiesResult] =
-          await Promise.all([
-            getPropertyTypes(controller.signal),
-            getPropertyStatuses(controller.signal),
-            getCompanies(controller.signal),
-            getAgents(controller.signal),
-            getProperties(controller.signal, { pageSize: 100 }),
-          ])
+        const [typesResult, statusesResult, propertiesResult] = await Promise.all([
+          getPropertyTypes(controller.signal),
+          getPropertyStatuses(controller.signal),
+          getProperties(controller.signal, { pageSize: 100 }),
+        ])
 
         setPropertyTypes(typesResult)
         setPropertyStatuses(statusesResult)
-        setCompanies(companiesResult)
-        setAgents(agentsResult)
         setCityOptions(getUniqueCities(propertiesResult.items))
+
+        if (canCreateProperty) {
+          const [companiesResult, agentsResult] = await Promise.all([
+            getCompanies(controller.signal),
+            getAgents(controller.signal),
+          ])
+          setCompanies(companiesResult)
+          setAgents(agentsResult)
+        } else {
+          setCompanies([])
+          setAgents([])
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
@@ -148,7 +161,7 @@ export default function PropertiesPage() {
     void loadLookups()
 
     return () => controller.abort()
-  }, [])
+  }, [canCreateProperty])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -251,6 +264,12 @@ export default function PropertiesPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (!canCreateProperty) {
+      setSubmitState('error')
+      setSubmitMessage('You do not have permission to create properties.')
+      return
+    }
+
     const validation = validateForm(form)
     setFormErrors(validation)
 
@@ -290,7 +309,7 @@ export default function PropertiesPage() {
   }
 
   async function handleDeleteProperty() {
-    if (!propertyPendingDelete) {
+    if (!propertyPendingDelete || !canDeleteProperty) {
       return
     }
 
@@ -437,24 +456,25 @@ export default function PropertiesPage() {
         </div>
       </section>
 
-      <section className="form-panel">
-        <div className="form-panel-header">
-          <div>
-            <span className="panel-label">Create</span>
-            <h2>New Property</h2>
+      {canCreateProperty ? (
+        <section className="form-panel">
+          <div className="form-panel-header">
+            <div>
+              <span className="panel-label">Create</span>
+              <h2>New Property</h2>
+            </div>
+            {submitMessage && (
+              <span
+                className={`form-message ${
+                  submitState === 'success' ? 'form-message-success' : 'form-message-error'
+                }`}
+              >
+                {submitMessage}
+              </span>
+            )}
           </div>
-          {submitMessage && (
-            <span
-              className={`form-message ${
-                submitState === 'success' ? 'form-message-success' : 'form-message-error'
-              }`}
-            >
-              {submitMessage}
-            </span>
-          )}
-        </div>
 
-        <form className="property-form" onSubmit={handleSubmit} noValidate>
+          <form className="property-form" onSubmit={handleSubmit} noValidate>
           <label className="field">
             <span>Title</span>
             <input
@@ -675,8 +695,9 @@ export default function PropertiesPage() {
               {submitState === 'submitting' ? 'Creating...' : 'Create Property'}
             </button>
           </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      ) : null}
 
       <section className="data-panel" aria-live="polite">
         {deleteMessage && (
@@ -731,23 +752,27 @@ export default function PropertiesPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="table-actions">
-                        <Link className="table-action-link" to={`/properties/${property.id}/edit`}>
-                          Edit
-                        </Link>
                         <Link className="table-action-link" to={`/properties/${property.id}`}>
                           Details
                         </Link>
-                        <button
-                          type="button"
-                          className="table-action-danger"
-                          onClick={() => {
-                            setDeleteMessage(null)
-                            setPropertyPendingDelete(property)
-                          }}
-                          disabled={deletingPropertyId === property.id}
-                        >
-                          {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
-                        </button>
+                        {canEditProperty ? (
+                          <Link className="table-action-link" to={`/properties/${property.id}/edit`}>
+                            Edit
+                          </Link>
+                        ) : null}
+                        {canDeleteProperty ? (
+                          <button
+                            type="button"
+                            className="table-action-danger"
+                            onClick={() => {
+                              setDeleteMessage(null)
+                              setPropertyPendingDelete(property)
+                            }}
+                            disabled={deletingPropertyId === property.id}
+                          >
+                            {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -793,7 +818,7 @@ export default function PropertiesPage() {
         )}
       </section>
 
-      {propertyPendingDelete && (
+      {propertyPendingDelete && canDeleteProperty && (
         <div className="dialog-backdrop" role="presentation">
           <div
             className="confirm-dialog"
