@@ -1,14 +1,19 @@
 using System.Reflection;
 using AutoMapper;
 using EstateIQ.Data;
+using EstateIQ.Constants;
 using EstateIQ.Interfaces;
 using EstateIQ.Mappings;
 using EstateIQ.Models;
 using EstateIQ.Repositories;
 using EstateIQ.Services;
 using EstateIQ.Services.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System.Security.Claims;
+using System.Text;
 
 EnvironmentFileLoader.Load(Directory.GetCurrentDirectory());
 
@@ -53,6 +58,26 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings are not configured.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
+builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
@@ -129,10 +154,17 @@ if (!app.Environment.IsEnvironment("Testing"))
     }
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
+
+app.MapGet("/api/test/admin", () => "Admin access granted")
+    .RequireAuthorization(policy => policy.RequireRole(Roles.Admin))
+    .WithName("GetAdminAuthorizationTest");
 
 app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
 {
