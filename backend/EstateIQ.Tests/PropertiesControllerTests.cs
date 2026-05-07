@@ -401,6 +401,11 @@ public class PropertiesControllerTests
         var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+        Assert.False(Directory.Exists(Path.Combine(factory.WebRootPath, "uploads", "properties", propertyId.ToString())));
     }
 
     [Fact]
@@ -415,6 +420,11 @@ public class PropertiesControllerTests
         var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+        Assert.False(Directory.Exists(Path.Combine(factory.WebRootPath, "uploads", "properties", propertyId.ToString())));
     }
 
     [Fact]
@@ -429,6 +439,48 @@ public class PropertiesControllerTests
         var response = await client.PostAsync("/api/properties/999/images", content);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+        Assert.False(Directory.Exists(Path.Combine(factory.WebRootPath, "uploads", "properties", "999")));
+    }
+
+    [Fact]
+    public async Task UploadImages_WithoutToken_ReturnsUnauthorized()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        using var content = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+
+        var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+        Assert.False(Directory.Exists(Path.Combine(factory.WebRootPath, "uploads", "properties", propertyId.ToString())));
+    }
+
+    [Fact]
+    public async Task UploadImages_WithUserPermissionSet_ReturnsForbidden()
+    {
+        await using var factory = new EstateIqWebApplicationFactory();
+        var propertyId = await factory.SeedPropertyAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Permissions.ViewProperties, Permissions.BookViewing);
+        using var content = BuildImageUploadContent(("image.jpg", "image/jpeg"));
+
+        var response = await client.PostAsync($"/api/properties/{propertyId}/images", content);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Empty(dbContext.Files);
+        Assert.False(Directory.Exists(Path.Combine(factory.WebRootPath, "uploads", "properties", propertyId.ToString())));
     }
 
     [Fact]
