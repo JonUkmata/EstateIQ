@@ -74,11 +74,19 @@ namespace EstateIQ.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("IX_Agents_Email");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Agents_UserId")
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("Agents", (string)null);
                 });
@@ -178,6 +186,248 @@ namespace EstateIQ.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Companies", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.CompanyUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("RelationshipType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_CompanyUsers_UserId");
+
+                    b.HasIndex("CompanyId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CompanyUsers_CompanyId_UserId");
+
+                    b.ToTable("CompanyUsers", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.EmailVerificationToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EmailVerificationTokens_Token");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_EmailVerificationTokens_UserId");
+
+                    b.ToTable("EmailVerificationTokens", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.FileRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid?>("UploadedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadedBy")
+                        .HasDatabaseName("IX_Files_UploadedBy");
+
+                    b.HasIndex("Entity", "EntityId")
+                        .HasDatabaseName("IX_Files_Entity_EntityId");
+
+                    b.ToTable("Files", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Files_FileSize", "[FileSize] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.PasswordResetToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PasswordResetTokens_Token");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_PasswordResetTokens_UserId");
+
+                    b.ToTable("PasswordResetTokens", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.Permission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Permissions_Name");
+
+                    b.ToTable("Permissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("d7a9c1e3-4f5b-46a8-90c2-1e3d5f7a9b0c"),
+                            Description = "Manage users",
+                            Name = "ManageUsers"
+                        },
+                        new
+                        {
+                            Id = new Guid("4b2a0c8e-6f1d-43b5-9a7c-2e4f6d8b0a1c"),
+                            Description = "Manage companies",
+                            Name = "ManageCompanies"
+                        },
+                        new
+                        {
+                            Id = new Guid("9e1c3a5f-7b2d-40f6-8a9c-3d5e7f1b0c2a"),
+                            Description = "Manage agents",
+                            Name = "ManageAgents"
+                        },
+                        new
+                        {
+                            Id = new Guid("0f2e4d6c-8b1a-45c7-9e3f-4a6b8d0c2e1f"),
+                            Description = "Create properties",
+                            Name = "CreateProperty"
+                        },
+                        new
+                        {
+                            Id = new Guid("5c7a9e1d-3f2b-48d0-86a4-5b7c9e1f3d2a"),
+                            Description = "Edit properties",
+                            Name = "EditProperty"
+                        },
+                        new
+                        {
+                            Id = new Guid("8d0b2e4f-6a1c-43e5-9b7d-6c8e0a2f4b1d"),
+                            Description = "Delete properties",
+                            Name = "DeleteProperty"
+                        },
+                        new
+                        {
+                            Id = new Guid("1a3c5e7f-9b0d-42f4-8c6a-7d9e1b3f5a0c"),
+                            Description = "Upload property images",
+                            Name = "UploadPropertyImages"
+                        },
+                        new
+                        {
+                            Id = new Guid("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d"),
+                            Description = "View properties",
+                            Name = "ViewProperties"
+                        },
+                        new
+                        {
+                            Id = new Guid("3f5a7c9e-1b0d-44f6-8a2c-9f1e3d5b7a0c"),
+                            Description = "Book property viewings",
+                            Name = "BookViewing"
+                        });
                 });
 
             modelBuilder.Entity("EstateIQ.Models.Property", b =>
@@ -461,6 +711,344 @@ namespace EstateIQ.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EstateIQ.Models.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_RefreshTokens_UserId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Roles_Name");
+
+                    b.ToTable("Roles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a"),
+                            CreatedAt = new DateTime(2026, 4, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "System administrator",
+                            Name = "Admin"
+                        },
+                        new
+                        {
+                            Id = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f"),
+                            CreatedAt = new DateTime(2026, 4, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Company administrator",
+                            Name = "CompanyAdmin"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01"),
+                            CreatedAt = new DateTime(2026, 4, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Real estate agent",
+                            Name = "Agent"
+                        },
+                        new
+                        {
+                            Id = new Guid("1d3b5f7a-8c9e-4b2a-91d0-6e5f4c3b2a10"),
+                            CreatedAt = new DateTime(2026, 4, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Public user",
+                            Name = "User"
+                        });
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.RolePermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PermissionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("RoleId", "PermissionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RolePermissions_RoleId_PermissionId");
+
+                    b.ToTable("RolePermissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e501"),
+                            PermissionId = new Guid("d7a9c1e3-4f5b-46a8-90c2-1e3d5f7a9b0c"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e502"),
+                            PermissionId = new Guid("4b2a0c8e-6f1d-43b5-9a7c-2e4f6d8b0a1c"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e503"),
+                            PermissionId = new Guid("9e1c3a5f-7b2d-40f6-8a9c-3d5e7f1b0c2a"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e504"),
+                            PermissionId = new Guid("0f2e4d6c-8b1a-45c7-9e3f-4a6b8d0c2e1f"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e505"),
+                            PermissionId = new Guid("5c7a9e1d-3f2b-48d0-86a4-5b7c9e1f3d2a"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e506"),
+                            PermissionId = new Guid("8d0b2e4f-6a1c-43e5-9b7d-6c8e0a2f4b1d"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e507"),
+                            PermissionId = new Guid("1a3c5e7f-9b0d-42f4-8c6a-7d9e1b3f5a0c"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e508"),
+                            PermissionId = new Guid("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("93f8e4a1-2b7c-4d6e-8f90-a1b2c3d4e509"),
+                            PermissionId = new Guid("3f5a7c9e-1b0d-44f6-8a2c-9f1e3d5b7a0c"),
+                            RoleId = new Guid("8b6f1a2d-3e4c-4a5b-9c7d-0f1e2d3c4b5a")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c601"),
+                            PermissionId = new Guid("9e1c3a5f-7b2d-40f6-8a9c-3d5e7f1b0c2a"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c602"),
+                            PermissionId = new Guid("0f2e4d6c-8b1a-45c7-9e3f-4a6b8d0c2e1f"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c603"),
+                            PermissionId = new Guid("5c7a9e1d-3f2b-48d0-86a4-5b7c9e1f3d2a"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c604"),
+                            PermissionId = new Guid("8d0b2e4f-6a1c-43e5-9b7d-6c8e0a2f4b1d"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c605"),
+                            PermissionId = new Guid("1a3c5e7f-9b0d-42f4-8c6a-7d9e1b3f5a0c"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("b4a7d2e5-6c8f-4a10-9b3d-e5f6a7b8c606"),
+                            PermissionId = new Guid("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d"),
+                            RoleId = new Guid("2a7c9e4f-5b1d-42a8-86f3-1c9d0e7b6a5f")
+                        },
+                        new
+                        {
+                            Id = new Guid("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d701"),
+                            PermissionId = new Guid("0f2e4d6c-8b1a-45c7-9e3f-4a6b8d0c2e1f"),
+                            RoleId = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01")
+                        },
+                        new
+                        {
+                            Id = new Guid("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d702"),
+                            PermissionId = new Guid("5c7a9e1d-3f2b-48d0-86a4-5b7c9e1f3d2a"),
+                            RoleId = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01")
+                        },
+                        new
+                        {
+                            Id = new Guid("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d703"),
+                            PermissionId = new Guid("8d0b2e4f-6a1c-43e5-9b7d-6c8e0a2f4b1d"),
+                            RoleId = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01")
+                        },
+                        new
+                        {
+                            Id = new Guid("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d704"),
+                            PermissionId = new Guid("1a3c5e7f-9b0d-42f4-8c6a-7d9e1b3f5a0c"),
+                            RoleId = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01")
+                        },
+                        new
+                        {
+                            Id = new Guid("c5b8e3f6-7d90-4b21-8c4e-f6a7b8c9d705"),
+                            PermissionId = new Guid("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d"),
+                            RoleId = new Guid("6f2d8a1b-4c3e-49f7-9a0b-5d6e7c8b9a01")
+                        },
+                        new
+                        {
+                            Id = new Guid("d6c9f4a7-8e01-4c32-9d5f-a7b8c9d0e801"),
+                            PermissionId = new Guid("6b8d0f2e-4a1c-46e8-9d7b-8e0f2a4c6b1d"),
+                            RoleId = new Guid("1d3b5f7a-8c9e-4b2a-91d0-6e5f4c3b2a10")
+                        },
+                        new
+                        {
+                            Id = new Guid("d6c9f4a7-8e01-4c32-9d5f-a7b8c9d0e802"),
+                            PermissionId = new Guid("3f5a7c9e-1b0d-44f6-8a2c-9f1e3d5b7a0c"),
+                            RoleId = new Guid("1d3b5f7a-8c9e-4b2a-91d0-6e5f4c3b2a10")
+                        });
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsEmailConfirmed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Email");
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.UserRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId", "RoleId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserRoles_UserId_RoleId");
+
+                    b.ToTable("UserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.Agent", b =>
+                {
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithOne("Agent")
+                        .HasForeignKey("EstateIQ.Models.Agent", "UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("EstateIQ.Models.AgentCompany", b =>
                 {
                     b.HasOne("EstateIQ.Models.Agent", "Agent")
@@ -478,6 +1066,57 @@ namespace EstateIQ.Migrations
                     b.Navigation("Agent");
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.CompanyUser", b =>
+                {
+                    b.HasOne("EstateIQ.Models.Company", "Company")
+                        .WithMany("CompanyUsers")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithMany("CompanyUsers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.EmailVerificationToken", b =>
+                {
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithMany("EmailVerificationTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.FileRecord", b =>
+                {
+                    b.HasOne("EstateIQ.Models.User", "UploadedByUser")
+                        .WithMany("UploadedFiles")
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.PasswordResetToken", b =>
+                {
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithMany("PasswordResetTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EstateIQ.Models.Property", b =>
@@ -515,6 +1154,55 @@ namespace EstateIQ.Migrations
                     b.Navigation("PropertyType");
                 });
 
+            modelBuilder.Entity("EstateIQ.Models.RefreshToken", b =>
+                {
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.RolePermission", b =>
+                {
+                    b.HasOne("EstateIQ.Models.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EstateIQ.Models.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.UserRole", b =>
+                {
+                    b.HasOne("EstateIQ.Models.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EstateIQ.Models.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("EstateIQ.Models.Agent", b =>
                 {
                     b.Navigation("AgentCompanies");
@@ -526,7 +1214,14 @@ namespace EstateIQ.Migrations
                 {
                     b.Navigation("AgentCompanies");
 
+                    b.Navigation("CompanyUsers");
+
                     b.Navigation("Properties");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("EstateIQ.Models.PropertyStatus", b =>
@@ -537,6 +1232,30 @@ namespace EstateIQ.Migrations
             modelBuilder.Entity("EstateIQ.Models.PropertyType", b =>
                 {
                     b.Navigation("Properties");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("EstateIQ.Models.User", b =>
+                {
+                    b.Navigation("Agent");
+
+                    b.Navigation("CompanyUsers");
+
+                    b.Navigation("EmailVerificationTokens");
+
+                    b.Navigation("PasswordResetTokens");
+
+                    b.Navigation("RefreshTokens");
+
+                    b.Navigation("UploadedFiles");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

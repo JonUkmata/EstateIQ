@@ -1,8 +1,11 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Permissions } from '../constants/auth'
+import { useAuth } from '../context/AuthContext'
 import {
   getAgents,
   getCompanies,
+  getPropertyImages,
   getPropertyById,
   getPropertyStatuses,
   getPropertyTypes,
@@ -14,6 +17,9 @@ import {
   updateProperty,
 } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+import PropertyImageGallery from '../components/properties/PropertyImageGallery'
+import PropertyImageUpload from '../components/properties/PropertyImageUpload'
+import type { PropertyImage } from '../types/files'
 
 type LoadState = 'loading' | 'success' | 'error'
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
@@ -61,7 +67,13 @@ const initialFormState: PropertyFormState = {
 export default function EditPropertyPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { hasPermission } = useAuth()
+  const canEditProperty = hasPermission(Permissions.EditProperty)
+  const canUploadPropertyImages = hasPermission(Permissions.UploadPropertyImages)
   const [form, setForm] = useState<PropertyFormState>(initialFormState)
+  const [images, setImages] = useState<PropertyImage[]>([])
+  const [imagesLoading, setImagesLoading] = useState(false)
+  const [imagesError, setImagesError] = useState('')
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
   const [propertyStatuses, setPropertyStatuses] = useState<PropertyStatus[]>([])
@@ -100,7 +112,23 @@ export default function EditPropertyPage() {
         setCompanies(companyList)
         setAgents(companyAgents)
         setForm(mapPropertyToForm(property))
+        setImages(property.images ?? [])
         setLoadState('success')
+
+        setImagesLoading(true)
+        try {
+          const imageList = await getPropertyImages(parsedId, controller.signal)
+          setImages(imageList)
+          setImagesError('')
+        } catch (imageError) {
+          if (imageError instanceof DOMException && imageError.name === 'AbortError') {
+            return
+          }
+
+          setImagesError(imageError instanceof Error ? imageError.message : 'Failed to load property images.')
+        } finally {
+          setImagesLoading(false)
+        }
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
@@ -114,6 +142,24 @@ export default function EditPropertyPage() {
     void loadEditData()
     return () => controller.abort()
   }, [id])
+
+  async function refreshImages() {
+    const parsedId = Number(id)
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+      return
+    }
+
+    try {
+      setImagesLoading(true)
+      setImagesError('')
+      const imageList = await getPropertyImages(parsedId)
+      setImages(imageList)
+    } catch (error) {
+      setImagesError(error instanceof Error ? error.message : 'Failed to refresh property images.')
+    } finally {
+      setImagesLoading(false)
+    }
+  }
 
   function updateFormField(field: keyof PropertyFormState, value: string) {
     setForm((current) => ({
@@ -145,6 +191,13 @@ export default function EditPropertyPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!canEditProperty) {
+      setSubmitState('error')
+      setSubmitMessage('You do not have permission to edit properties.')
+      return
+    }
+
     const parsedId = Number(id)
     if (!Number.isInteger(parsedId) || parsedId <= 0) {
       setSubmitState('error')
@@ -355,6 +408,24 @@ export default function EditPropertyPage() {
           </div>
         </form>
       </section>
+
+      {imagesError ? (
+        <section className="data-panel">
+          <div className="table-state table-state-error">
+            <p>{imagesError}</p>
+          </div>
+        </section>
+      ) : null}
+
+      <PropertyImageGallery images={images} isLoading={imagesLoading} />
+
+      {canUploadPropertyImages ? (
+        <PropertyImageUpload
+          propertyId={Number(id)}
+          currentImageCount={images.length}
+          onUploaded={refreshImages}
+        />
+      ) : null}
     </section>
   )
 }

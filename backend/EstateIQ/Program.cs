@@ -1,18 +1,28 @@
 using System.Reflection;
 using AutoMapper;
 using EstateIQ.Data;
+using EstateIQ.Constants;
 using EstateIQ.Interfaces;
 using EstateIQ.Mappings;
+using EstateIQ.Models;
 using EstateIQ.Repositories;
 using EstateIQ.Services;
+using EstateIQ.Services.Auth;
+using EstateIQ.Services.Files;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
+using System.Security.Claims;
+using System.Text;
 
 EnvironmentFileLoader.Load(Directory.GetCurrentDirectory());
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+const string TestingJwtKey = "EstateIQ-Development-Jwt-Key-Replace-In-Production-2026";
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -50,8 +60,66 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.PostConfigure<JwtSettings>(options =>
+{
+    if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(options.Key))
+    {
+        options.Key = TestingJwtKey;
+    }
+});
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings are not configured.");
+
+if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(jwtSettings.Key))
+{
+    jwtSettings.Key = TestingJwtKey;
+}
+
+ValidateJwtSettings(jwtSettings);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(Permissions.ManageUsers, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageUsers));
+    options.AddPolicy(Permissions.ManageCompanies, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageCompanies));
+    options.AddPolicy(Permissions.ManageAgents, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ManageAgents));
+    options.AddPolicy(Permissions.CreateProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.CreateProperty));
+    options.AddPolicy(Permissions.EditProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.EditProperty));
+    options.AddPolicy(Permissions.DeleteProperty, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.DeleteProperty));
+    options.AddPolicy(Permissions.UploadPropertyImages, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.UploadPropertyImages));
+    options.AddPolicy(AuthorizationPolicies.ManagePropertyImages, policy => policy.RequireAssertion(context =>
+        context.User.HasClaim(Permissions.ClaimType, Permissions.UploadPropertyImages)
+        || context.User.HasClaim(Permissions.ClaimType, Permissions.EditProperty)));
+    options.AddPolicy(Permissions.ViewProperties, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.ViewProperties));
+    options.AddPolicy(Permissions.BookViewing, policy => policy.RequireClaim(Permissions.ClaimType, Permissions.BookViewing));
+});
+builder.Services.AddSingleton<IPasswordService, PasswordService>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
+builder.Services.AddScoped<IFileRepository, FileRepository>();
+builder.Services.AddScoped<IFileValidationService, FileValidationService>();
+builder.Services.AddScoped<IPropertyImageService, PropertyImageService>();
 builder.Services.AddScoped<IPropertyTypeRepository, PropertyTypeRepository>();
 builder.Services.AddScoped<IPropertyTypeService, PropertyTypeService>();
 builder.Services.AddScoped<IPropertyStatusRepository, PropertyStatusRepository>();
@@ -80,6 +148,31 @@ builder.Services.AddSwaggerGen(options =>
     {
         options.IncludeXmlComments(xmlFilePath, includeControllerXmlComments: true);
     }
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter a valid JWT bearer token."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            []
+        }
+    });
 });
 
 var app = builder.Build();
@@ -122,10 +215,37 @@ if (!app.Environment.IsEnvironment("Testing"))
     }
 }
 
+app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 app.MapGet("/api/test", () => "API is running")
     .WithName("GetApiTest");
+
+app.MapGet("/api/test/protected", (ClaimsPrincipal user) => Results.Ok(new
+{
+    userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+}))
+.RequireAuthorization()
+.WithName("GetProtectedApiTest");
+
+app.MapGet("/api/test/admin", () => "Admin access granted")
+    .RequireAuthorization(policy => policy.RequireRole(Roles.Admin))
+    .WithName("GetAdminAuthorizationTest");
+
+app.MapGet("/api/test/permissions/manage-users", () => "ManageUsers permission granted")
+    .RequireAuthorization(Permissions.ManageUsers)
+    .WithName("GetManageUsersPermissionTest");
+
+app.MapGet("/api/test/permissions/manage-companies", () => "ManageCompanies permission granted")
+    .RequireAuthorization(Permissions.ManageCompanies)
+    .WithName("GetManageCompaniesPermissionTest");
+
+app.MapGet("/api/test/permissions/manage-agents", () => "ManageAgents permission granted")
+    .RequireAuthorization(Permissions.ManageAgents)
+    .WithName("GetManageAgentsPermissionTest");
 
 app.MapGet("/api/test/db", async (AppDbContext dbContext) =>
 {
@@ -164,5 +284,28 @@ app.MapGet("/api/test/redis", async (IRedisCacheService redisCacheService, ILogg
 .WithName("GetRedisConnectionTest");
 
 app.Run();
+
+static void ValidateJwtSettings(JwtSettings jwtSettings)
+{
+    if (string.IsNullOrWhiteSpace(jwtSettings.Issuer))
+    {
+        throw new InvalidOperationException("JWT issuer is not configured.");
+    }
+
+    if (string.IsNullOrWhiteSpace(jwtSettings.Audience))
+    {
+        throw new InvalidOperationException("JWT audience is not configured.");
+    }
+
+    if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+    {
+        throw new InvalidOperationException("JWT key is not configured.");
+    }
+
+    if (Encoding.UTF8.GetByteCount(jwtSettings.Key) < 32)
+    {
+        throw new InvalidOperationException("JWT key must be at least 32 bytes long.");
+    }
+}
 
 public partial class Program;

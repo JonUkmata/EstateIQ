@@ -26,5 +26,7 @@ public class Company
 
     public ICollection<AgentCompany> AgentCompanies { get; set; } = new List<AgentCompany>();
 
+    public ICollection<CompanyUser> CompanyUsers { get; set; } = new List<CompanyUser>();
+
     public ICollection<Property> Properties { get; set; } = new List<Property>();
 }

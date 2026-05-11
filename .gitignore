@@ -18,6 +18,9 @@ build/
 # Logs
 *.log
 
+# Runtime uploads
+backend/EstateIQ/wwwroot/uploads/
+
 # Editor directories and files
 .vscode/
 

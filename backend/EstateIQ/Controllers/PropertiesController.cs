@@ -1,6 +1,10 @@
+using EstateIQ.Constants;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Files;
 using EstateIQ.Exceptions;
+using EstateIQ.Extensions;
 using EstateIQ.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ValidationException = EstateIQ.Exceptions.ValidationException;
 
@@ -13,9 +17,11 @@ namespace EstateIQ.Controllers;
 [Route("api/[controller]")]
 public class PropertiesController(
     IPropertyService propertyService,
+    IPropertyImageService propertyImageService,
     ILogger<PropertiesController> logger) : ControllerBase
 {
     private readonly IPropertyService _propertyService = propertyService;
+    private readonly IPropertyImageService _propertyImageService = propertyImageService;
     private readonly ILogger<PropertiesController> _logger = logger;
 
     /// <summary>
@@ -80,6 +86,7 @@ public class PropertiesController(
     /// <param name="dto">The property creation payload.</param>
     /// <returns>The created property with related lookup data.</returns>
     [HttpPost]
+    [Authorize(Policy = Permissions.CreateProperty)]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
@@ -114,6 +121,7 @@ public class PropertiesController(
     /// <param name="dto">The property update payload.</param>
     /// <returns>The updated property with related lookup data.</returns>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = Permissions.EditProperty)]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
@@ -152,6 +160,7 @@ public class PropertiesController(
     /// <param name="id">The property identifier.</param>
     /// <returns>No content when the property is deleted.</returns>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = Permissions.DeleteProperty)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(string), StatusCodes.Status409Conflict)]
@@ -177,6 +186,99 @@ public class PropertiesController(
         {
             _logger.LogError(exception, "Error deleting property {PropertyId}.", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the property.");
+        }
+    }
+
+    /// <summary>
+    /// Uploads one or more images for a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <param name="files">The image files submitted under the multipart field name "files".</param>
+    /// <returns>The uploaded file metadata records.</returns>
+    [HttpPost("{id:int}/images")]
+    [Authorize(Policy = Permissions.UploadPropertyImages)]
+    [Consumes("multipart/form-data")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<UploadedFileDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<UploadedFileDto>>> UploadImages(int id, [FromForm] List<IFormFile> files)
+    {
+        try
+        {
+            var uploadedFiles = await _propertyImageService.UploadImagesAsync(id, files, User.GetUserId());
+            return Created($"/api/properties/{id}/images", uploadedFiles);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error uploading images for property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while uploading property images.");
+        }
+    }
+
+    /// <summary>
+    /// Gets public image metadata for a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <returns>The image metadata records for the property.</returns>
+    [HttpGet("{id:int}/images")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<FileResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<FileResponseDto>>> GetImages(int id)
+    {
+        try
+        {
+            var images = await _propertyImageService.GetImagesAsync(id);
+            return Ok(images);
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error fetching images for property {PropertyId}.", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while fetching property images.");
+        }
+    }
+
+    /// <summary>
+    /// Deletes an image from a property.
+    /// </summary>
+    /// <param name="id">The property identifier.</param>
+    /// <param name="imageId">The image identifier.</param>
+    /// <returns>No content when the image metadata is removed.</returns>
+    [HttpDelete("{id:int}/images/{imageId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.ManagePropertyImages)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteImage(int id, Guid imageId)
+    {
+        try
+        {
+            await _propertyImageService.DeleteImageAsync(id, imageId);
+            return NoContent();
+        }
+        catch (NotFoundException exception)
+        {
+            return NotFound(exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error deleting image {ImageId} for property {PropertyId}.", imageId, id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the property image.");
         }
     }
 }

@@ -1,11 +1,14 @@
 using AutoMapper;
 using EstateIQ.Data;
 using EstateIQ.DTOs;
+using EstateIQ.DTOs.Files;
 using EstateIQ.Exceptions;
+using EstateIQ.Interfaces;
 using EstateIQ.Mappings;
 using EstateIQ.Models;
 using EstateIQ.Repositories;
 using EstateIQ.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -258,8 +261,27 @@ public class PropertyServiceTests
             new CompanyRepository(dbContext),
             new AgentRepository(dbContext),
             new AgentCompanyRepository(dbContext),
+            new EmptyPropertyImageService(),
             mapper,
             NullLogger<PropertyService>.Instance);
+    }
+
+    private sealed class EmptyPropertyImageService : IPropertyImageService
+    {
+        public Task<IReadOnlyList<UploadedFileDto>> UploadImagesAsync(int propertyId, IReadOnlyCollection<IFormFile> files, Guid? uploadedBy)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<IReadOnlyList<FileResponseDto>> GetImagesAsync(int propertyId)
+        {
+            return Task.FromResult<IReadOnlyList<FileResponseDto>>([]);
+        }
+
+        public Task DeleteImageAsync(int propertyId, Guid imageId)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     private static AppDbContext CreateContext()

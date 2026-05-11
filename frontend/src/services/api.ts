@@ -1,16 +1,53 @@
+import type {
+  LoginRequest,
+  LoginResponse,
+  LogoutResponse,
+  RegisterRequest,
+  RegisterResponse,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
+} from '../types/auth'
+import type { PropertyImage, UploadedPropertyImage } from '../types/files'
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+let accessToken: string | null = null
+
+export function setApiAccessToken(token: string | null) {
+  accessToken = token
+}
 
 function buildApiUrl(path: string) {
   return `${apiBaseUrl}${path}`
+}
+
+export function buildFileUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) {
+    return path
+  }
+
+  return buildApiUrl(path.startsWith('/') ? path : `/${path}`)
 }
 
 async function parseErrorDetails(response: Response) {
   const contentType = response.headers.get('content-type') ?? ''
   if (contentType.includes('application/json')) {
     const payload = (await response.json()) as Record<string, unknown>
+    const validationErrors = payload.errors
+    if (validationErrors && typeof validationErrors === 'object' && !Array.isArray(validationErrors)) {
+      const messages = Object.values(validationErrors)
+        .flatMap((value) => (Array.isArray(value) ? value : []))
+        .filter((value): value is string => typeof value === 'string')
+
+      if (messages.length > 0) {
+        return messages.join(' ')
+      }
+    }
+
     const message =
       typeof payload.message === 'string'
         ? payload.message
+        : typeof payload.detail === 'string'
+          ? payload.detail
         : typeof payload.title === 'string'
           ? payload.title
           : ''
@@ -54,6 +91,9 @@ async function fetchJson<T>(path: string, options: RequestInit = {}) {
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
 
   let response: Response
   try {
@@ -78,6 +118,9 @@ async function fetchText(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers)
   if (!headers.has('Accept')) {
     headers.set('Accept', 'text/plain')
+  }
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
   let response: Response
@@ -148,6 +191,7 @@ export type PropertyDetails = Property & {
     mobile?: string | null
     isActive: boolean
   }
+  images: PropertyImage[]
 }
 
 export type PropertyType = {
@@ -330,5 +374,59 @@ export async function updateProperty(id: number, payload: UpdatePropertyPayload)
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function getPropertyImages(propertyId: number, signal?: AbortSignal) {
+  return fetchJson<PropertyImage[]>(`/api/properties/${propertyId}/images`, { signal })
+}
+
+export async function uploadPropertyImages(propertyId: number, files: File[]) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  return fetchJson<UploadedPropertyImage[]>(`/api/properties/${propertyId}/images`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export async function registerUser(payload: RegisterRequest) {
+  return fetchJson<RegisterResponse>('/api/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function verifyEmail(payload: VerifyEmailRequest) {
+  return fetchJson<VerifyEmailResponse>('/api/auth/verify-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function loginUser(payload: LoginRequest) {
+  return fetchJson<LoginResponse>('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function logoutUser(refreshToken?: string) {
+  return fetchJson<LogoutResponse>('/api/auth/logout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken: refreshToken ?? null }),
   })
 }
