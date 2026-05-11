@@ -62,6 +62,7 @@ Open `backend/EstateIQ/.env` and fill it like this for the recommended Windows s
 ```env
 ConnectionStrings__DefaultConnection="Server=(localdb)\MSSQLLocalDB;Database=EstateIQ;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
 Redis__ConnectionString="localhost:6379,abortConnect=false"
+Jwt__Key="EstateIQ-Development-Jwt-Key-Replace-In-Production-2026"
 ```
 
 If LocalDB is not installed and the teammate uses another SQL Server instance, only change the first line.
@@ -86,6 +87,12 @@ dotnet tool restore
 ```
 
 If `dotnet ef` says it is missing, `dotnet tool restore` is the fix.
+
+Important auth note:
+
+- `appsettings.Development.json` includes a development JWT key.
+- `appsettings.json` intentionally does not include a production signing key.
+- Outside local development, set `Jwt__Key` from environment/configuration.
 
 ### 3. Apply Database Migrations
 
@@ -201,6 +208,10 @@ Run these in order during the call:
 5. Open `http://localhost:5222/api/test/redis` and expect Redis success.
 6. Start the frontend and open `http://localhost:5173`.
 7. On the home page, confirm the backend response card shows success.
+8. Open `http://localhost:5173/register`, create a user, and copy the generated verification token.
+9. Open `http://localhost:5173/verify-email?token=PASTE_TOKEN_HERE` and verify the user.
+10. Login at `http://localhost:5173/login`.
+11. Confirm public property browsing still works at `/properties` and `/map`.
 
 ## Common Problems
 
@@ -259,6 +270,26 @@ Check:
 - `frontend/.env` still has `VITE_API_PROXY_TARGET="http://127.0.0.1:5222"`
 - The frontend was restarted after changing `.env`
 
+### Backend Fails With `JWT key is not configured`
+
+Set a local JWT key in `backend/EstateIQ/.env`:
+
+```env
+Jwt__Key="EstateIQ-Development-Jwt-Key-Replace-In-Production-2026"
+```
+
+The key must be at least 32 bytes long.
+
+### Uploaded Images Should Not Be Committed
+
+Runtime uploads are written under:
+
+```text
+backend/EstateIQ/wwwroot/uploads/
+```
+
+That folder is ignored by Git and should stay local/runtime-only.
+
 ## Recommended Order During Team Onboarding
 
 1. Install prerequisites.
@@ -272,6 +303,7 @@ Check:
 9. Run `npm install` in `frontend`.
 10. Run the frontend.
 11. Check `/api/test`, `/api/test/db`, `/api/test/redis`, and the home page.
+12. Smoke test register, verify email, login, `/properties`, and `/map`.
 
 ## References
 

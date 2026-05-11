@@ -22,6 +22,7 @@ EnvironmentFileLoader.Load(Directory.GetCurrentDirectory());
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+const string TestingJwtKey = "EstateIQ-Development-Jwt-Key-Replace-In-Production-2026";
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -60,8 +61,21 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddControllers();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.PostConfigure<JwtSettings>(options =>
+{
+    if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(options.Key))
+    {
+        options.Key = TestingJwtKey;
+    }
+});
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings are not configured.");
+
+if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(jwtSettings.Key))
+{
+    jwtSettings.Key = TestingJwtKey;
+}
+
 ValidateJwtSettings(jwtSettings);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
