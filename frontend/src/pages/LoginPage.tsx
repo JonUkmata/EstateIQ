@@ -34,7 +34,7 @@ function getLoginErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : 'Login failed. Please try again.'
 
   if (message.toLowerCase().includes('email is not verified')) {
-    return 'Email is not verified. Please verify your email before logging in.'
+    return 'Your email is not verified yet. Please verify your email before logging in.'
   }
 
   return message
@@ -84,56 +84,81 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-shell auth-shell">
-      <section className="login-card auth-card">
-        <div>
+    <main className="login-shell login-page-shell">
+      <section className="login-card login-panel">
+        <div className="login-panel-copy">
           <span className="eyebrow">Login</span>
-          <h1>Welcome back.</h1>
+          <h1>Welcome back to EstateIQ.</h1>
           <p className="lead">
-            Sign in with a verified account to access protected tools and role-based navigation.
+            Sign in with your verified account to continue to your dashboard or property workspace.
           </p>
+
+          <div className="login-support-panel">
+            <span className="panel-label">Secure access</span>
+            <p>Role-based navigation starts after login, so every user lands in the right place.</p>
+          </div>
         </div>
 
-        <form className="property-form auth-form login-form" onSubmit={handleSubmit} noValidate>
-          <label className="field field-wide">
-            <span>Email</span>
-            <input
-              autoComplete="email"
-              inputMode="email"
-              type="email"
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
-            />
-            {errors.email ? <small>{errors.email}</small> : null}
-          </label>
-
-          <label className="field field-wide">
-            <span>Password</span>
-            <input
-              autoComplete="current-password"
-              type="password"
-              value={form.password}
-              onChange={(event) => updateField('password', event.target.value)}
-            />
-            {errors.password ? <small>{errors.password}</small> : null}
-          </label>
-
-          {submitError ? <p className="form-message form-message-error field-wide">{submitError}</p> : null}
-
-          <div className="form-actions auth-actions">
-            <NavLink className="cta-link cta-link-secondary" to="/register">
-              Create account
-            </NavLink>
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing in...' : 'Login'}
-            </button>
+        <div className="login-form-card">
+          <div className="login-form-heading">
+            <h2>Sign in</h2>
+            <p>Use the email and password connected to your EstateIQ account.</p>
           </div>
-        </form>
 
-        <aside className="company-contact-box">
-          <span className="panel-label">Company access</span>
-          <p>Jeni kompani? Na kontaktoni për verifikim.</p>
-        </aside>
+          <form className="property-form auth-form login-form" onSubmit={handleSubmit} noValidate>
+            <label className="field field-wide">
+              <span>Email</span>
+              <input
+                aria-invalid={Boolean(errors.email)}
+                autoComplete="email"
+                inputMode="email"
+                placeholder="you@example.com"
+                type="email"
+                value={form.email}
+                onChange={(event) => updateField('email', event.target.value)}
+              />
+              {errors.email ? <small>{errors.email}</small> : null}
+            </label>
+
+            <label className="field field-wide">
+              <span>Password</span>
+              <input
+                aria-invalid={Boolean(errors.password)}
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                type="password"
+                value={form.password}
+                onChange={(event) => updateField('password', event.target.value)}
+              />
+              {errors.password ? <small>{errors.password}</small> : null}
+            </label>
+
+            {submitError ? (
+              <p className="form-message form-message-error login-error-message field-wide">
+                {submitError}
+              </p>
+            ) : null}
+
+            <div className="form-actions login-form-actions">
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <span className="state-with-spinner">
+                    <span className="loading-spinner" aria-hidden="true">
+                      <span className="loading-spinner-dot" />
+                    </span>
+                    <span>Signing in...</span>
+                  </span>
+                ) : (
+                  'Login'
+                )}
+              </button>
+            </div>
+          </form>
+
+          <p className="login-register-prompt">
+            Do not have an account? <NavLink to="/register">Create account</NavLink>
+          </p>
+        </div>
       </section>
     </main>
   )
