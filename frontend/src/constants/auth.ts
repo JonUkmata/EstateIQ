@@ -18,3 +18,4 @@ export const Permissions = {
 } as const
 
 export const staffRoles = [Roles.Admin, Roles.CompanyAdmin, Roles.Agent]
+export const authenticatedRoles = [Roles.Admin, Roles.CompanyAdmin, Roles.Agent, Roles.User]
