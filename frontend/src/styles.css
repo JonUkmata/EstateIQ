@@ -1254,6 +1254,14 @@ a {
   padding: 2rem 0;
 }
 
+.auth-flow-shell {
+  width: min(1120px, calc(100% - 2rem));
+  min-height: 100vh;
+  display: grid;
+  align-items: center;
+  padding: 2rem 0;
+}
+
 .auth-landing-shell {
   min-height: 100vh;
   display: grid;
@@ -1333,32 +1341,57 @@ a {
   padding: clamp(1.4rem, 4vw, 3rem);
 }
 
+.auth-flow-panel {
+  grid-template-columns: minmax(0, 0.85fr) minmax(420px, 1.1fr);
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.4rem, 4vw, 3rem);
+}
+
+.verify-flow-shell {
+  width: min(980px, calc(100% - 2rem));
+}
+
+.verify-flow-panel {
+  grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
+}
+
 .login-panel-copy h1 {
   max-width: 12ch;
 }
 
+.auth-flow-copy h1 {
+  max-width: 13ch;
+}
+
 .login-support-panel,
+.auth-flow-note,
+.auth-form-card,
 .login-form-card {
   border: 1px solid rgba(24, 53, 41, 0.12);
   background: rgba(245, 249, 243, 0.9);
 }
 
-.login-support-panel {
+.login-support-panel,
+.auth-flow-note {
   margin-top: 1.5rem;
   padding: 1rem;
   border-radius: 16px;
 }
 
-.login-support-panel .panel-label {
+.login-support-panel .panel-label,
+.auth-flow-note .panel-label {
   margin-bottom: 0.35rem;
 }
 
-.login-support-panel p {
+.login-support-panel p,
+.auth-flow-note p {
   margin: 0;
   color: #38584a;
   line-height: 1.55;
 }
 
+.auth-form-card,
 .login-form-card {
   display: grid;
   gap: 1.2rem;
@@ -1417,6 +1450,21 @@ a {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+}
+
+.demo-token-card {
+  gap: 0.65rem;
+}
+
+.demo-token-card p {
+  margin: 0;
+  color: #2f6845;
+  line-height: 1.5;
+}
+
+.demo-token-card code {
+  max-height: 160px;
+  overflow: auto;
 }
 
 .auth-shell {
@@ -1540,11 +1588,14 @@ a {
   .layout-shell,
   .hero-card,
   .auth-landing,
-  .login-panel {
+  .login-panel,
+  .auth-flow-panel,
+  .verify-flow-panel {
     grid-template-columns: 1fr;
   }
 
-  .login-panel-copy h1 {
+  .login-panel-copy h1,
+  .auth-flow-copy h1 {
     max-width: none;
   }
 
@@ -1700,6 +1751,10 @@ a {
   }
 
   .login-page-shell {
+    padding: 1rem 0;
+  }
+
+  .auth-flow-shell {
     padding: 1rem 0;
   }
 

@@ -103,100 +103,138 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="login-shell auth-shell">
-      <section className="login-card auth-card">
-        <div>
+    <main className="login-shell auth-flow-shell">
+      <section className="login-card auth-flow-panel">
+        <div className="auth-flow-copy">
           <span className="eyebrow">Register</span>
-          <h1>Create your account.</h1>
+          <h1>Create your EstateIQ account.</h1>
           <p className="lead">
-            Register as a buyer or renter to access user features. Business accounts are verified separately.
+            Register as a buyer or renter. For this demo, verification uses a simulated token shown
+            after registration instead of a real email.
           </p>
+
+          <div className="auth-flow-note">
+            <span className="panel-label">Demo verification</span>
+            <p>
+              After submitting the form, copy the generated token or continue with the prefilled
+              verification link.
+            </p>
+          </div>
         </div>
 
-        <form className="property-form auth-form" onSubmit={handleSubmit} noValidate>
-          <label className="field">
-            <span>First name</span>
-            <input
-              autoComplete="given-name"
-              value={form.firstName}
-              onChange={(event) => updateField('firstName', event.target.value)}
-            />
-            {errors.firstName ? <small>{errors.firstName}</small> : null}
-          </label>
-
-          <label className="field">
-            <span>Last name</span>
-            <input
-              autoComplete="family-name"
-              value={form.lastName}
-              onChange={(event) => updateField('lastName', event.target.value)}
-            />
-            {errors.lastName ? <small>{errors.lastName}</small> : null}
-          </label>
-
-          <label className="field field-wide">
-            <span>Email</span>
-            <input
-              autoComplete="email"
-              inputMode="email"
-              type="email"
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
-            />
-            {errors.email ? <small>{errors.email}</small> : null}
-          </label>
-
-          <label className="field">
-            <span>Password</span>
-            <input
-              autoComplete="new-password"
-              type="password"
-              value={form.password}
-              onChange={(event) => updateField('password', event.target.value)}
-            />
-            {errors.password ? <small>{errors.password}</small> : null}
-          </label>
-
-          <label className="field">
-            <span>Confirm password</span>
-            <input
-              autoComplete="new-password"
-              type="password"
-              value={form.confirmPassword}
-              onChange={(event) => updateField('confirmPassword', event.target.value)}
-            />
-            {errors.confirmPassword ? <small>{errors.confirmPassword}</small> : null}
-          </label>
-
-          {submitError ? <p className="form-message form-message-error field-wide">{submitError}</p> : null}
-
-          {success ? (
-            <div className="auth-success field-wide">
-              <strong>{success.message || 'Registration successful.'}</strong>
-              <span>Verification token</span>
-              <code>{success.verificationToken}</code>
-              {verifyLink ? (
-                <NavLink className="table-action-link" to={verifyLink}>
-                  Continue to email verification
-                </NavLink>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="form-actions auth-actions">
-            <NavLink className="cta-link cta-link-secondary" to="/login">
-              Login
-            </NavLink>
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating account...' : 'Create account'}
-            </button>
+        <div className="auth-form-card">
+          <div className="login-form-heading">
+            <h2>Account details</h2>
+            <p>Use a valid email format and a password with at least 8 characters.</p>
           </div>
-        </form>
 
-        <aside className="company-contact-box">
-          <span className="panel-label">Company access</span>
-          <p>Jeni kompani? Na kontaktoni për verifikim.</p>
-        </aside>
+          <form className="property-form auth-form" onSubmit={handleSubmit} noValidate>
+            <label className="field">
+              <span>First name</span>
+              <input
+                aria-invalid={Boolean(errors.firstName)}
+                autoComplete="given-name"
+                placeholder="First name"
+                value={form.firstName}
+                onChange={(event) => updateField('firstName', event.target.value)}
+              />
+              {errors.firstName ? <small>{errors.firstName}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Last name</span>
+              <input
+                aria-invalid={Boolean(errors.lastName)}
+                autoComplete="family-name"
+                placeholder="Last name"
+                value={form.lastName}
+                onChange={(event) => updateField('lastName', event.target.value)}
+              />
+              {errors.lastName ? <small>{errors.lastName}</small> : null}
+            </label>
+
+            <label className="field field-wide">
+              <span>Email</span>
+              <input
+                aria-invalid={Boolean(errors.email)}
+                autoComplete="email"
+                inputMode="email"
+                placeholder="you@example.com"
+                type="email"
+                value={form.email}
+                onChange={(event) => updateField('email', event.target.value)}
+              />
+              {errors.email ? <small>{errors.email}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Password</span>
+              <input
+                aria-invalid={Boolean(errors.password)}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                type="password"
+                value={form.password}
+                onChange={(event) => updateField('password', event.target.value)}
+              />
+              {errors.password ? <small>{errors.password}</small> : null}
+            </label>
+
+            <label className="field">
+              <span>Confirm password</span>
+              <input
+                aria-invalid={Boolean(errors.confirmPassword)}
+                autoComplete="new-password"
+                placeholder="Repeat password"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(event) => updateField('confirmPassword', event.target.value)}
+              />
+              {errors.confirmPassword ? <small>{errors.confirmPassword}</small> : null}
+            </label>
+
+            {submitError ? (
+              <p className="form-message form-message-error login-error-message field-wide">
+                {submitError}
+              </p>
+            ) : null}
+
+            {success ? (
+              <div className="auth-success demo-token-card field-wide">
+                <strong>{success.message || 'Registration successful.'}</strong>
+                <p>
+                  This project does not send a real email. Use this simulated demo token to verify
+                  the account.
+                </p>
+                <span>Demo verification token</span>
+                <code>{success.verificationToken}</code>
+                {verifyLink ? (
+                  <NavLink className="table-action-link" to={verifyLink}>
+                    Continue to email verification
+                  </NavLink>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="form-actions auth-actions">
+              <NavLink className="cta-link cta-link-secondary" to="/login">
+                Login
+              </NavLink>
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <span className="state-with-spinner">
+                    <span className="loading-spinner" aria-hidden="true">
+                      <span className="loading-spinner-dot" />
+                    </span>
+                    <span>Creating account...</span>
+                  </span>
+                ) : (
+                  'Create account'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </section>
     </main>
   )
