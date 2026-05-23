@@ -7,7 +7,7 @@ type AuthContextValue = {
   user: AuthUser | null
   accessToken: string | null
   isAuthenticated: boolean
-  login: (credentials: LoginRequest) => Promise<void>
+  login: (credentials: LoginRequest) => Promise<AuthUser>
   logout: () => Promise<void>
   hasRole: (role: string) => boolean
   hasPermission: (permission: string) => boolean
@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshTokenExpiresAt: response.refreshTokenExpiresAt,
           user: response.user,
         })
+        return response.user
       },
       async logout() {
         const refreshToken = session?.refreshToken

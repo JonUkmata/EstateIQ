@@ -1246,6 +1246,74 @@ a {
   padding: 4rem 0;
 }
 
+.auth-landing-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.auth-landing {
+  width: min(1080px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+  padding: clamp(1.5rem, 4vw, 3.25rem);
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 28px 70px rgba(57, 86, 68, 0.16);
+}
+
+.auth-landing-copy h1 {
+  max-width: 13ch;
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.8rem, 6vw, 5.2rem);
+  line-height: 0.94;
+  color: #11251c;
+}
+
+.auth-landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.auth-landing-primary {
+  background: #163126;
+  color: #fffefa;
+}
+
+.auth-landing-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.auth-landing-panel div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid rgba(24, 53, 41, 0.12);
+  border-radius: 16px;
+  background: rgba(245, 249, 243, 0.9);
+}
+
+.auth-landing-panel span {
+  color: #4a7861;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.auth-landing-panel strong {
+  color: #163126;
+  line-height: 1.35;
+}
+
 .login-card {
   grid-template-columns: 1fr;
 }
@@ -1369,7 +1437,8 @@ a {
 
 @media (max-width: 900px) {
   .layout-shell,
-  .hero-card {
+  .hero-card,
+  .auth-landing {
     grid-template-columns: 1fr;
   }
 
@@ -1518,6 +1587,14 @@ a {
   .auth-actions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .auth-landing-shell {
+    padding: 1rem;
+  }
+
+  .auth-landing-actions .cta-link {
+    width: 100%;
   }
 
   .auth-actions button,
