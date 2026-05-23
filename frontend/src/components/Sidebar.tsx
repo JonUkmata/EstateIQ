@@ -1,25 +1,60 @@
 import { NavLink } from 'react-router-dom'
-import { Permissions, staffRoles } from '../constants/auth'
+import { Permissions, Roles } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 
-const links = [
-  { label: 'Home', to: '/' },
-  { label: 'Properties', to: '/properties' },
-  { label: 'Map', to: '/map' },
-]
+type NavigationLink = {
+  label: string
+  to: string
+}
+
+function addLink(links: NavigationLink[], link: NavigationLink) {
+  if (!links.some((item) => item.to === link.to)) {
+    links.push(link)
+  }
+}
 
 export default function Sidebar() {
-  const { hasPermission, hasRole, user } = useAuth()
-  const canUseDashboard = staffRoles.some((role) => hasRole(role))
+  const { hasPermission, hasRole, isAuthenticated, user } = useAuth()
   const canManageProperties =
     hasPermission(Permissions.CreateProperty)
     || hasPermission(Permissions.EditProperty)
     || hasPermission(Permissions.DeleteProperty)
     || hasPermission(Permissions.UploadPropertyImages)
-  const visibleLinks = [
-    ...links,
-    ...(canUseDashboard ? [{ label: 'Dashboard', to: '/dashboard' }] : []),
-  ]
+  const visibleLinks: NavigationLink[] = []
+
+  if (!isAuthenticated) {
+    visibleLinks.push(
+      { label: 'Login', to: '/login' },
+      { label: 'Register', to: '/register' },
+    )
+  } else {
+    if (hasRole(Roles.User)) {
+      addLink(visibleLinks, { label: 'Properties', to: '/properties' })
+      addLink(visibleLinks, { label: 'Map Search', to: '/map' })
+      addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
+    }
+
+    if (hasRole(Roles.Agent)) {
+      addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
+      addLink(visibleLinks, { label: 'Properties', to: '/properties' })
+      addLink(visibleLinks, { label: 'Map Search', to: '/map' })
+      addLink(visibleLinks, { label: 'My Properties', to: '/my-properties' })
+    }
+
+    if (hasRole(Roles.CompanyAdmin)) {
+      addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
+      addLink(visibleLinks, { label: 'Properties', to: '/properties' })
+      addLink(visibleLinks, { label: 'Map Search', to: '/map' })
+      addLink(visibleLinks, { label: 'Company Agents', to: '/company-agents' })
+    }
+
+    if (hasRole(Roles.Admin)) {
+      addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
+      addLink(visibleLinks, { label: 'Properties', to: '/properties' })
+      addLink(visibleLinks, { label: 'Map Search', to: '/map' })
+      addLink(visibleLinks, { label: 'Admin Users', to: '/admin-users' })
+    }
+  }
 
   return (
     <aside className="sidebar">

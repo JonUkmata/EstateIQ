@@ -20,9 +20,6 @@ export default function Navbar() {
       </div>
 
       <nav className="top-nav" aria-label="Top navigation">
-        <NavLink className="top-nav-link" to="/">
-          Home
-        </NavLink>
         {isAuthenticated ? (
           <>
             <span className="top-nav-user">
