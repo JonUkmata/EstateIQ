@@ -1246,6 +1246,14 @@ a {
   padding: 4rem 0;
 }
 
+.login-page-shell {
+  width: min(1040px, calc(100% - 2rem));
+  min-height: 100vh;
+  display: grid;
+  align-items: center;
+  padding: 2rem 0;
+}
+
 .auth-landing-shell {
   min-height: 100vh;
   display: grid;
@@ -1316,6 +1324,99 @@ a {
 
 .login-card {
   grid-template-columns: 1fr;
+}
+
+.login-panel {
+  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 0.8fr);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.4rem, 4vw, 3rem);
+}
+
+.login-panel-copy h1 {
+  max-width: 12ch;
+}
+
+.login-support-panel,
+.login-form-card {
+  border: 1px solid rgba(24, 53, 41, 0.12);
+  background: rgba(245, 249, 243, 0.9);
+}
+
+.login-support-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 16px;
+}
+
+.login-support-panel .panel-label {
+  margin-bottom: 0.35rem;
+}
+
+.login-support-panel p {
+  margin: 0;
+  color: #38584a;
+  line-height: 1.55;
+}
+
+.login-form-card {
+  display: grid;
+  gap: 1.2rem;
+  padding: clamp(1.1rem, 3vw, 1.5rem);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.login-form-heading h2 {
+  margin: 0;
+  color: #163126;
+  font-size: 1.55rem;
+}
+
+.login-form-heading p {
+  margin: 0.45rem 0 0;
+  color: #486558;
+  line-height: 1.55;
+}
+
+.login-form-actions {
+  justify-content: stretch;
+}
+
+.login-form-actions button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  background: #163126;
+  color: #fffefa;
+}
+
+.login-form-actions button .state-with-spinner {
+  justify-content: center;
+}
+
+.login-error-message {
+  display: block;
+  max-width: none;
+  margin: 0;
+  border: 1px solid rgba(143, 45, 45, 0.16);
+}
+
+.login-register-prompt {
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(24, 53, 41, 0.1);
+  color: #486558;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.login-register-prompt a {
+  color: #163126;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .auth-shell {
@@ -1438,8 +1539,13 @@ a {
 @media (max-width: 900px) {
   .layout-shell,
   .hero-card,
-  .auth-landing {
+  .auth-landing,
+  .login-panel {
     grid-template-columns: 1fr;
+  }
+
+  .login-panel-copy h1 {
+    max-width: none;
   }
 
   .search-panel {
@@ -1591,6 +1697,10 @@ a {
 
   .auth-landing-shell {
     padding: 1rem;
+  }
+
+  .login-page-shell {
+    padding: 1rem 0;
   }
 
   .auth-landing-actions .cta-link {
