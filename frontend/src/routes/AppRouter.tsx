@@ -10,14 +10,16 @@ import MapPage from '../pages/MapPage'
 import PropertyDetailsPage from '../pages/PropertyDetailsPage'
 import PropertiesPage from '../pages/PropertiesPage'
 import RegisterPage from '../pages/RegisterPage'
+import RootEntryPage from '../pages/RootEntryPage'
 import VerifyEmailPage from '../pages/VerifyEmailPage'
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AppLayout />}>
-          <Route index element={<HomePage />} />
+        <Route path="/" element={<RootEntryPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="dev/health" element={<HomePage />} />
           <Route path="properties" element={<PropertiesPage />} />
           <Route path="properties/:id" element={<PropertyDetailsPage />} />
           <Route

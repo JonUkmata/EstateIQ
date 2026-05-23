@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { getAuthenticatedHomePath } from '../utils/authRedirects'
 
 type LoginForm = {
   email: string
@@ -70,11 +71,11 @@ export default function LoginPage() {
 
     setIsSubmitting(true)
     try {
-      await login({
+      const authenticatedUser = await login({
         email: form.email.trim(),
         password: form.password,
       })
-      navigate('/dashboard')
+      navigate(getAuthenticatedHomePath(authenticatedUser), { replace: true })
     } catch (error) {
       setSubmitError(getLoginErrorMessage(error))
     } finally {
