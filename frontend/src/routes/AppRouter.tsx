@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '../components/ProtectedRoute'
-import { Permissions, Roles, authenticatedRoles } from '../constants/auth'
+import { Permissions, Roles } from '../constants/auth'
 import AppLayout from '../layouts/AppLayout'
 import AdminUsersPage from '../pages/AdminUsersPage'
 import CompanyAgentsPage from '../pages/CompanyAgentsPage'
@@ -24,11 +24,25 @@ export default function AppRouter() {
         <Route element={<AppLayout />}>
           <Route path="dev/health" element={<HomePage />} />
           <Route path="properties" element={<PropertiesPage />} />
+          <Route
+            path="properties/new"
+            element={
+              <ProtectedRoute
+                requiredPermissions={[Permissions.CreateProperty]}
+                fallbackPath="/properties"
+              >
+                <PropertiesPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="properties/:id" element={<PropertyDetailsPage />} />
           <Route
             path="properties/:id/edit"
             element={
-              <ProtectedRoute permissions={[Permissions.EditProperty]} fallbackPath="/properties">
+              <ProtectedRoute
+                requiredPermissions={[Permissions.EditProperty]}
+                fallbackPath="/properties"
+              >
                 <EditPropertyPage />
               </ProtectedRoute>
             }
@@ -37,7 +51,7 @@ export default function AppRouter() {
           <Route
             path="dashboard"
             element={
-              <ProtectedRoute roles={authenticatedRoles}>
+              <ProtectedRoute>
                 <DashboardPage />
               </ProtectedRoute>
             }
@@ -46,8 +60,8 @@ export default function AppRouter() {
             path="my-properties"
             element={
               <ProtectedRoute
-                roles={[Roles.Agent]}
-                permissions={[Permissions.CreateProperty]}
+                requiredRoles={[Roles.Agent]}
+                requiredPermissions={[Permissions.CreateProperty]}
                 fallbackPath="/dashboard"
               >
                 <MyPropertiesPage />
@@ -55,11 +69,11 @@ export default function AppRouter() {
             }
           />
           <Route
-            path="company-agents"
+            path="company/agents"
             element={
               <ProtectedRoute
-                roles={[Roles.CompanyAdmin]}
-                permissions={[Permissions.ManageAgents]}
+                requiredRoles={[Roles.CompanyAdmin]}
+                requiredPermissions={[Permissions.ManageAgents]}
                 fallbackPath="/dashboard"
               >
                 <CompanyAgentsPage />
@@ -67,11 +81,11 @@ export default function AppRouter() {
             }
           />
           <Route
-            path="admin-users"
+            path="admin/users"
             element={
               <ProtectedRoute
-                roles={[Roles.Admin]}
-                permissions={[Permissions.ManageUsers]}
+                requiredRoles={[Roles.Admin]}
+                requiredPermissions={[Permissions.ManageUsers]}
                 fallbackPath="/dashboard"
               >
                 <AdminUsersPage />

@@ -45,14 +45,14 @@ export default function Sidebar() {
       addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
       addLink(visibleLinks, { label: 'Properties', to: '/properties' })
       addLink(visibleLinks, { label: 'Map Search', to: '/map' })
-      addLink(visibleLinks, { label: 'Company Agents', to: '/company-agents' })
+      addLink(visibleLinks, { label: 'Company Agents', to: '/company/agents' })
     }
 
     if (hasRole(Roles.Admin)) {
       addLink(visibleLinks, { label: 'Dashboard', to: '/dashboard' })
       addLink(visibleLinks, { label: 'Properties', to: '/properties' })
       addLink(visibleLinks, { label: 'Map Search', to: '/map' })
-      addLink(visibleLinks, { label: 'Admin Users', to: '/admin-users' })
+      addLink(visibleLinks, { label: 'Admin Users', to: '/admin/users' })
     }
   }
 

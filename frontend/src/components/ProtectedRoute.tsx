@@ -6,6 +6,8 @@ type ProtectedRouteProps = {
   children: ReactNode
   roles?: string[]
   permissions?: string[]
+  requiredRoles?: string[]
+  requiredPermissions?: string[]
   fallbackPath?: string
 }
 
@@ -13,18 +15,24 @@ export default function ProtectedRoute({
   children,
   roles = [],
   permissions = [],
+  requiredRoles,
+  requiredPermissions,
   fallbackPath = '/',
 }: ProtectedRouteProps) {
   const location = useLocation()
   const { hasPermission, hasRole, isAuthenticated } = useAuth()
+  const allowedRoles = requiredRoles ?? roles
+  const allowedPermissions = requiredPermissions ?? permissions
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
-  const hasRequiredRole = roles.length === 0 || roles.some((role) => hasRole(role))
+  const hasRequiredRole =
+    allowedRoles.length === 0 || allowedRoles.some((role) => hasRole(role))
   const hasRequiredPermission =
-    permissions.length === 0 || permissions.some((permission) => hasPermission(permission))
+    allowedPermissions.length === 0
+    || allowedPermissions.some((permission) => hasPermission(permission))
 
   if (!hasRequiredRole || !hasRequiredPermission) {
     return <Navigate to={fallbackPath} replace />
