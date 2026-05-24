@@ -28,6 +28,10 @@ function readStoredSession() {
       return null
     }
 
+    if (!Array.isArray(session.user.roles) || !Array.isArray(session.user.permissions)) {
+      return null
+    }
+
     return session as AuthSession
   } catch {
     return null
@@ -74,10 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       hasRole(role) {
-        return session?.user.roles.includes(role) ?? false
+        return session?.user.roles?.includes(role) ?? false
       },
       hasPermission(permission) {
-        return session?.user.permissions.includes(permission) ?? false
+        return session?.user.permissions?.includes(permission) ?? false
       },
     }),
     [session],
