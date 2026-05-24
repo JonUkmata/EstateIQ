@@ -4,6 +4,7 @@ import { Permissions, Roles } from '../constants/auth'
 import AppLayout from '../layouts/AppLayout'
 import AdminUsersPage from '../pages/AdminUsersPage'
 import CompanyAgentsPage from '../pages/CompanyAgentsPage'
+import CreatePropertyPage from '../pages/CreatePropertyPage'
 import DashboardPage from '../pages/DashboardPage'
 import EditPropertyPage from '../pages/EditPropertyPage'
 import HomePage from '../pages/HomePage'
@@ -31,7 +32,7 @@ export default function AppRouter() {
                 requiredPermissions={[Permissions.CreateProperty]}
                 fallbackPath="/properties"
               >
-                <PropertiesPage />
+                <CreatePropertyPage />
               </ProtectedRoute>
             }
           />
