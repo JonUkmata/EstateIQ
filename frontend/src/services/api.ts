@@ -503,22 +503,6 @@ export async function uploadPropertyImages(propertyId: number, files: File[]) {
   })
 }
 
-export type UserListItem = {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  isActive: boolean
-  isEmailConfirmed: boolean
-  roles: string[]
-}
-
-type UserListQuery = {
-  search?: string
-  page?: string | number
-  pageSize?: string | number
-}
-
 export type UpdateUserStatusPayload = {
   isActive: boolean
 }
@@ -526,23 +510,6 @@ export type UpdateUserStatusPayload = {
 export type UpdateUserStatusResponse = {
   id: string
   isActive: boolean
-}
-
-export async function getUsers(signal?: AbortSignal, query?: UserListQuery) {
-  const parameters = new URLSearchParams()
-  const search = query?.search?.trim()
-  const page = query?.page?.toString().trim()
-  const pageSize = query?.pageSize?.toString().trim()
-
-  if (search) parameters.set('search', search)
-  if (page) parameters.set('page', page)
-  if (pageSize) parameters.set('pageSize', pageSize)
-
-  const queryString = parameters.toString()
-  return fetchJson<PagedResult<UserListItem>>(
-    `/api/users${queryString ? `?${queryString}` : ''}`,
-    { signal },
-  )
 }
 
 export async function updateUserStatus(id: string, payload: UpdateUserStatusPayload) {
