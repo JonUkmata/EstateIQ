@@ -217,6 +217,84 @@ export default function AdminUsersPage() {
         </div>
       </form>
 
+      <section className="data-panel" aria-live="polite">
+        {loadState === 'loading' ? (
+          <div className="table-state">
+            <p className="state-with-spinner">
+              <LoadingSpinner label="Loading users" />
+              <span>Loading users...</span>
+            </p>
+          </div>
+        ) : null}
+
+        {loadState === 'error' ? (
+          <div className="table-state table-state-error">
+            <p>{errorMessage}</p>
+          </div>
+        ) : null}
+
+        {loadState === 'success' && users.length === 0 ? (
+          <div className="table-state">
+            <p>No users match the current filters.</p>
+          </div>
+        ) : null}
+
+        {loadState === 'success' && users.length > 0 ? (
+          <>
+            <div className="properties-table-wrap">
+              <table className="properties-table admin-users-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Verification</th>
+                    <th>Company</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td data-label="Name">{formatName(user)}</td>
+                      <td data-label="Email">{user.email}</td>
+                      <td data-label="Role">{formatRoles(user.roles)}</td>
+                      <td data-label="Status">
+                        <span className="status-pill">{user.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                      <td data-label="Email confirmed">
+                        {user.isEmailConfirmed ? 'Verified' : 'Unverified'}
+                      </td>
+                      <td data-label="Company">{formatCompanies(user)}</td>
+                      <td data-label="Created">{formatDate(user.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pagination-bar">
+              <span className="pagination-summary">
+                Page {page} of {Math.max(totalPages, 1)}
+              </span>
+              <div className="pagination-controls">
+                <button type="button" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => current + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </section>
+
       <section className="form-panel">
         <div className="form-panel-header">
           <div>
@@ -316,84 +394,6 @@ export default function AdminUsersPage() {
             </button>
           </div>
         </form>
-      </section>
-
-      <section className="data-panel" aria-live="polite">
-        {loadState === 'loading' ? (
-          <div className="table-state">
-            <p className="state-with-spinner">
-              <LoadingSpinner label="Loading users" />
-              <span>Loading users...</span>
-            </p>
-          </div>
-        ) : null}
-
-        {loadState === 'error' ? (
-          <div className="table-state table-state-error">
-            <p>{errorMessage}</p>
-          </div>
-        ) : null}
-
-        {loadState === 'success' && users.length === 0 ? (
-          <div className="table-state">
-            <p>No users match the current filters.</p>
-          </div>
-        ) : null}
-
-        {loadState === 'success' && users.length > 0 ? (
-          <>
-            <div className="properties-table-wrap">
-              <table className="properties-table admin-users-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Verification</th>
-                    <th>Company</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td data-label="Name">{formatName(user)}</td>
-                      <td data-label="Email">{user.email}</td>
-                      <td data-label="Role">{formatRoles(user.roles)}</td>
-                      <td data-label="Status">
-                        <span className="status-pill">{user.isActive ? 'Active' : 'Inactive'}</span>
-                      </td>
-                      <td data-label="Email confirmed">
-                        {user.isEmailConfirmed ? 'Verified' : 'Unverified'}
-                      </td>
-                      <td data-label="Company">{formatCompanies(user)}</td>
-                      <td data-label="Created">{formatDate(user.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="pagination-bar">
-              <span className="pagination-summary">
-                Page {page} of {Math.max(totalPages, 1)}
-              </span>
-              <div className="pagination-controls">
-                <button type="button" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={page >= totalPages}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </>
-        ) : null}
       </section>
     </section>
   )
