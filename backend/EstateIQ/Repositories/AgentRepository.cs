@@ -96,6 +96,20 @@ public class AgentRepository(AppDbContext dbContext) : IAgentRepository
             .AnyAsync(x => x.Id == id && x.IsActive);
     }
 
+    /// <summary>
+    /// Returns the active company ID for the agent linked to the given user, or null if not found.
+    /// </summary>
+    public Task<int?> GetCompanyIdByUserIdAsync(Guid userId)
+    {
+        return _dbContext.Agents
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .SelectMany(a => a.AgentCompanies
+                .Where(ac => ac.IsActive)
+                .Select(ac => (int?)ac.CompanyId))
+            .FirstOrDefaultAsync();
+    }
+
     private IQueryable<Agent> CreateSortedQuery()
     {
         return _dbContext.Agents

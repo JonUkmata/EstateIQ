@@ -21,7 +21,8 @@ public class PropertyService(
     IAgentCompanyRepository agentCompanyRepository,
     IPropertyImageService propertyImageService,
     IMapper mapper,
-    ILogger<PropertyService> logger) : IPropertyService
+    ILogger<PropertyService> logger,
+    IDashboardInvalidationService dashboardInvalidation) : IPropertyService
 {
     private readonly IPropertyRepository _propertyRepository = propertyRepository;
     private readonly IPropertyTypeRepository _propertyTypeRepository = propertyTypeRepository;
@@ -32,6 +33,7 @@ public class PropertyService(
     private readonly IPropertyImageService _propertyImageService = propertyImageService;
     private readonly IMapper _mapper = mapper;
     private readonly ILogger<PropertyService> _logger = logger;
+    private readonly IDashboardInvalidationService _dashboardInvalidation = dashboardInvalidation;
 
     /// <summary>
     /// Gets all properties with related data.
@@ -80,6 +82,7 @@ public class PropertyService(
             var createdWithDetails = await _propertyRepository.GetByIdWithDetailsAsync(created.Id) ?? created;
 
             _logger.LogInformation("Property {PropertyId} created successfully.", created.Id);
+            await _dashboardInvalidation.InvalidateDashboardsForPropertyChangeAsync(dto.CompanyId, dto.AgentId);
             return _mapper.Map<PropertyDto>(createdWithDetails);
         }
         catch (ValidationException exception)
@@ -117,6 +120,9 @@ public class PropertyService(
                 throw new NotFoundException($"Property with id {id} was not found.");
             }
 
+            var oldCompanyId = existing.CompanyId;
+            var oldAgentId = existing.AgentId;
+
             await ValidatePropertyReferencesAsync(dto.PropertyTypeId, dto.PropertyStatusId, dto.CompanyId, dto.AgentId);
             await ValidateBusinessRulesForUpdateAsync(existing, dto);
 
@@ -125,6 +131,11 @@ public class PropertyService(
             var updatedWithDetails = await _propertyRepository.GetByIdWithDetailsAsync(updated.Id) ?? updated;
 
             _logger.LogInformation("Property {PropertyId} updated successfully.", id);
+            await _dashboardInvalidation.InvalidateDashboardsForPropertyChangeAsync(dto.CompanyId, dto.AgentId);
+            if (oldCompanyId != dto.CompanyId || oldAgentId != dto.AgentId)
+            {
+                await _dashboardInvalidation.InvalidateDashboardsForPropertyChangeAsync(oldCompanyId, oldAgentId);
+            }
             return _mapper.Map<PropertyDto>(updatedWithDetails);
         }
         catch (NotFoundException)
@@ -169,11 +180,15 @@ public class PropertyService(
                 throw new BusinessRuleException("Sold, rented, or under-contract properties cannot be deleted.");
             }
 
+            var companyId = property.CompanyId;
+            var agentId = property.AgentId;
+
             var deleted = await _propertyRepository.DeleteAsync(id);
 
             if (deleted)
             {
                 _logger.LogInformation("Audit: Property {PropertyId} deleted.", id);
+                await _dashboardInvalidation.InvalidateDashboardsForPropertyChangeAsync(companyId, agentId);
             }
 
             return deleted;

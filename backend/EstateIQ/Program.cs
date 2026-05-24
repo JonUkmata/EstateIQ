@@ -131,6 +131,7 @@ builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddScoped<IAgentCompanyRepository, AgentCompanyRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IDashboardCacheService, DashboardCacheService>();
+builder.Services.AddScoped<IDashboardInvalidationService, DashboardInvalidationService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);

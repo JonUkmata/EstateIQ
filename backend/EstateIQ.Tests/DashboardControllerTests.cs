@@ -626,11 +626,12 @@ public class DashboardControllerTests
         }
     }
 
-    // Always returns a cache miss; discards all writes. Used by the default test factory.
+    // Always returns a cache miss; discards all writes and deletes. Used by the default test factory.
     private sealed class NullDashboardCacheService : IDashboardCacheService
     {
         public Task<T?> GetAsync<T>(string key) where T : class => Task.FromResult<T?>(null);
         public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) where T : class => Task.CompletedTask;
+        public Task DeleteAsync(string key) => Task.CompletedTask;
     }
 
     // In-memory cache backed by a dictionary. Supports pre-populating for cache-hit tests.
@@ -650,6 +651,12 @@ public class DashboardControllerTests
             Store[key] = JsonSerializer.Serialize(value, JsonOptions);
             return Task.CompletedTask;
         }
+
+        public Task DeleteAsync(string key)
+        {
+            Store.TryRemove(key, out _);
+            return Task.CompletedTask;
+        }
     }
 
     // Throws on every call. Used to verify DashboardCacheService catches exceptions
@@ -658,5 +665,6 @@ public class DashboardControllerTests
     {
         public Task<string?> GetStringAsync(string key) => throw new InvalidOperationException("Redis unavailable");
         public Task SetStringAsync(string key, string value, TimeSpan? expiry = null) => throw new InvalidOperationException("Redis unavailable");
+        public Task DeleteAsync(string key) => throw new InvalidOperationException("Redis unavailable");
     }
 }

@@ -9,7 +9,9 @@ namespace EstateIQ.Services;
 
 public class UserService(
     IUserRepository userRepository,
-    IPasswordService passwordService) : IUserService
+    IPasswordService passwordService,
+    IDashboardInvalidationService dashboardInvalidation,
+    IAgentRepository agentRepository) : IUserService
 {
     private const string CompanyAdminRoleName = "CompanyAdmin";
     private const string CompanyAdminRelationshipType = "CompanyAdmin";
@@ -17,6 +19,8 @@ public class UserService(
     private const string AgentCompanyRoleName = "Agent";
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IPasswordService _passwordService = passwordService;
+    private readonly IDashboardInvalidationService _dashboardInvalidation = dashboardInvalidation;
+    private readonly IAgentRepository _agentRepository = agentRepository;
 
     public async Task<PagedResult<UserListItemDto>> GetUsersAsync(UserListQueryParameters queryParameters)
     {
@@ -120,6 +124,7 @@ public class UserService(
         };
 
         await _userRepository.AddCompanyAdminAsync(user, userRole, companyUser);
+        await _dashboardInvalidation.InvalidateDashboardsForCompanyAdminChangeAsync(request.CompanyId);
 
         return new CreateCompanyAdminResponseDto
         {
@@ -217,6 +222,7 @@ public class UserService(
         };
 
         await _userRepository.AddAgentUserAsync(user, userRole, agent, agentCompany);
+        await _dashboardInvalidation.InvalidateDashboardsForAgentChangeAsync(companyId);
 
         return new CreateAgentResponseDto
         {
@@ -239,6 +245,24 @@ public class UserService(
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.UpdateUserStatusAsync(user, revokeRefreshTokens: !newStatus);
+
+        var companyAdminCompanyId = await _userRepository.GetCompanyIdForUserRelationshipAsync(id, CompanyAdminRelationshipType);
+        if (companyAdminCompanyId.HasValue)
+        {
+            await _dashboardInvalidation.InvalidateDashboardsForCompanyAdminChangeAsync(companyAdminCompanyId.Value);
+        }
+        else
+        {
+            var agentCompanyId = await _agentRepository.GetCompanyIdByUserIdAsync(id);
+            if (agentCompanyId.HasValue)
+            {
+                await _dashboardInvalidation.InvalidateDashboardsForAgentChangeAsync(agentCompanyId.Value);
+            }
+            else
+            {
+                await _dashboardInvalidation.InvalidateDashboardsForUserChangeAsync();
+            }
+        }
 
         return new UpdateUserStatusResponseDto
         {
