@@ -1,9 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { Permissions } from '../constants/auth'
+import { useAuth } from '../context/AuthContext'
 import {
   createCompanyAdmin,
   getCompanies,
   getUsers,
+  updateUserStatus,
   type AdminUser,
   type Company,
   type CreateCompanyAdminPayload,
@@ -31,6 +34,9 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 })
 
 export default function AdminUsersPage() {
+  const { user: currentUser, hasPermission } = useAuth()
+  const canManageUsers = hasPermission(Permissions.ManageUsers)
+
   const [users, setUsers] = useState<AdminUser[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -48,6 +54,9 @@ export default function AdminUsersPage() {
   const [form, setForm] = useState<CreateCompanyAdminPayload>(initialForm)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [reloadKey, setReloadKey] = useState(0)
+  const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [pendingDeactivate, setPendingDeactivate] = useState<AdminUser | null>(null)
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -178,6 +187,39 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function handleStatusUpdate(targetUser: AdminUser, newStatus: boolean) {
+    setUpdatingUserId(targetUser.id)
+    setActionMessage(null)
+
+    try {
+      const response = await updateUserStatus(targetUser.id, { isActive: newStatus })
+      setUsers((current) =>
+        current.map((u) => (u.id === response.id ? { ...u, isActive: response.isActive } : u)),
+      )
+      setActionMessage({
+        text: `${targetUser.firstName} ${targetUser.lastName} has been ${response.isActive ? 'activated' : 'deactivated'}.`,
+        type: 'success',
+      })
+    } catch (error) {
+      setActionMessage({
+        text: error instanceof Error ? error.message : 'Failed to update user status.',
+        type: 'error',
+      })
+    } finally {
+      setUpdatingUserId(null)
+      setPendingDeactivate(null)
+    }
+  }
+
+  function handleToggleStatus(user: AdminUser) {
+    setActionMessage(null)
+    if (user.isActive) {
+      setPendingDeactivate(user)
+    } else {
+      void handleStatusUpdate(user, true)
+    }
+  }
+
   return (
     <section className="content-stack">
       <div className="section-heading">
@@ -218,6 +260,12 @@ export default function AdminUsersPage() {
       </form>
 
       <section className="data-panel" aria-live="polite">
+        {actionMessage && (
+          <div className={`table-message table-message-${actionMessage.type}`}>
+            <span>{actionMessage.text}</span>
+          </div>
+        )}
+
         {loadState === 'loading' ? (
           <div className="table-state">
             <p className="state-with-spinner">
@@ -252,6 +300,7 @@ export default function AdminUsersPage() {
                     <th>Verification</th>
                     <th>Company</th>
                     <th>Created</th>
+                    {canManageUsers && <th>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -261,13 +310,42 @@ export default function AdminUsersPage() {
                       <td data-label="Email">{user.email}</td>
                       <td data-label="Role">{formatRoles(user.roles)}</td>
                       <td data-label="Status">
-                        <span className="status-pill">{user.isActive ? 'Active' : 'Inactive'}</span>
+                        <span
+                          className={`user-status-badge user-status-badge-${user.isActive ? 'active' : 'inactive'}`}
+                        >
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
                       <td data-label="Email confirmed">
                         {user.isEmailConfirmed ? 'Verified' : 'Unverified'}
                       </td>
                       <td data-label="Company">{formatCompanies(user)}</td>
                       <td data-label="Created">{formatDate(user.createdAt)}</td>
+                      {canManageUsers && (
+                        <td data-label="Actions">
+                          <div className="table-actions">
+                            <button
+                              type="button"
+                              className={user.isActive ? 'table-action-danger' : 'table-action-activate'}
+                              disabled={updatingUserId === user.id || user.id === currentUser?.id}
+                              onClick={() => handleToggleStatus(user)}
+                              title={
+                                user.id === currentUser?.id
+                                  ? 'You cannot change your own status'
+                                  : undefined
+                              }
+                            >
+                              {updatingUserId === user.id
+                                ? user.isActive
+                                  ? 'Deactivating...'
+                                  : 'Activating...'
+                                : user.isActive
+                                  ? 'Deactivate'
+                                  : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -279,7 +357,11 @@ export default function AdminUsersPage() {
                 Page {page} of {Math.max(totalPages, 1)}
               </span>
               <div className="pagination-controls">
-                <button type="button" onClick={() => setPage((current) => current - 1)} disabled={page <= 1}>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => current - 1)}
+                  disabled={page <= 1}
+                >
                   Previous
                 </button>
                 <button
@@ -395,6 +477,47 @@ export default function AdminUsersPage() {
           </div>
         </form>
       </section>
+
+      {pendingDeactivate && canManageUsers && (
+        <div className="dialog-backdrop" role="presentation">
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deactivate-user-title"
+          >
+            <div>
+              <span className="panel-label">Confirm</span>
+              <h2 id="deactivate-user-title">Deactivate User</h2>
+            </div>
+            <p>
+              Are you sure you want to deactivate{' '}
+              <strong>
+                {pendingDeactivate.firstName} {pendingDeactivate.lastName}
+              </strong>
+              ? Their active sessions will be revoked.
+            </p>
+            <div className="confirm-dialog-actions">
+              <button
+                type="button"
+                className="dialog-button-secondary"
+                onClick={() => setPendingDeactivate(null)}
+                disabled={updatingUserId === pendingDeactivate.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="dialog-button-danger"
+                onClick={() => void handleStatusUpdate(pendingDeactivate, false)}
+                disabled={updatingUserId === pendingDeactivate.id}
+              >
+                {updatingUserId === pendingDeactivate.id ? 'Deactivating...' : 'Deactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

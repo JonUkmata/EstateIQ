@@ -503,6 +503,23 @@ export async function uploadPropertyImages(propertyId: number, files: File[]) {
   })
 }
 
+export type UpdateUserStatusPayload = {
+  isActive: boolean
+}
+
+export type UpdateUserStatusResponse = {
+  id: string
+  isActive: boolean
+}
+
+export async function updateUserStatus(id: string, payload: UpdateUserStatusPayload) {
+  return fetchJson<UpdateUserStatusResponse>(`/api/users/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function registerUser(payload: RegisterRequest) {
   return fetchJson<RegisterResponse>('/api/auth/register', {
     method: 'POST',
