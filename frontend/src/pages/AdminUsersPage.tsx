@@ -1,11 +1,28 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { getUsers, type AdminUser, type PagedResult } from '../services/api'
+import {
+  createCompanyAdmin,
+  getCompanies,
+  getUsers,
+  type AdminUser,
+  type Company,
+  type CreateCompanyAdminPayload,
+  type PagedResult,
+} from '../services/api'
 
 type LoadState = 'loading' | 'success' | 'error'
+type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+type FormErrors = Partial<Record<keyof CreateCompanyAdminPayload, string>>
 
 const pageSize = 10
 const roleOptions = ['', 'Admin', 'CompanyAdmin', 'Agent', 'User']
+const initialForm: CreateCompanyAdminPayload = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  companyId: 0,
+}
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -15,14 +32,22 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
+  const [companyLoadState, setCompanyLoadState] = useState<LoadState>('loading')
+  const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [companyErrorMessage, setCompanyErrorMessage] = useState('')
+  const [submitMessage, setSubmitMessage] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  const [form, setForm] = useState<CreateCompanyAdminPayload>(initialForm)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -53,7 +78,33 @@ export default function AdminUsersPage() {
     void loadUsers()
 
     return () => controller.abort()
-  }, [page, role, search])
+  }, [page, reloadKey, role, search])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadCompanies() {
+      try {
+        setCompanyLoadState('loading')
+        setCompanyErrorMessage('')
+
+        const result = await getCompanies(controller.signal)
+        setCompanies(result.filter((company) => company.isActive))
+        setCompanyLoadState('success')
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+
+        setCompanyErrorMessage(error instanceof Error ? error.message : 'Failed to load companies.')
+        setCompanyLoadState('error')
+      }
+    }
+
+    void loadCompanies()
+
+    return () => controller.abort()
+  }, [])
 
   const userCountLabel = useMemo(() => {
     if (loadState === 'loading') {
@@ -78,6 +129,53 @@ export default function AdminUsersPage() {
   function handleRoleChange(nextRole: string) {
     setRole(nextRole)
     setPage(1)
+  }
+
+  function updateFormField(field: keyof CreateCompanyAdminPayload, value: string) {
+    setForm((current) => ({
+      ...current,
+      [field]: field === 'companyId' ? Number(value) : value,
+    }))
+    setFormErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }))
+  }
+
+  async function handleCreateCompanyAdmin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const validation = validateForm(form)
+    setFormErrors(validation)
+    setSubmitMessage('')
+
+    if (Object.keys(validation).length > 0) {
+      setSubmitState('error')
+      setSubmitMessage('Please fix the highlighted fields.')
+      return
+    }
+
+    try {
+      setSubmitState('submitting')
+      await createCompanyAdmin({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        companyId: form.companyId,
+      })
+      setForm(initialForm)
+      setFormErrors({})
+      setSearch('')
+      setSearchInput('')
+      setRole('CompanyAdmin')
+      setPage(1)
+      setReloadKey((current) => current + 1)
+      setSubmitState('success')
+      setSubmitMessage('CompanyAdmin created successfully.')
+    } catch (error) {
+      setSubmitState('error')
+      setSubmitMessage(error instanceof Error ? error.message : 'Failed to create CompanyAdmin.')
+    }
   }
 
   return (
@@ -119,6 +217,107 @@ export default function AdminUsersPage() {
         </div>
       </form>
 
+      <section className="form-panel">
+        <div className="form-panel-header">
+          <div>
+            <span className="panel-label">Create</span>
+            <h2>Add CompanyAdmin</h2>
+          </div>
+          {submitMessage ? (
+            <span
+              className={`form-message ${
+                submitState === 'success' ? 'form-message-success' : 'form-message-error'
+              }`}
+            >
+              {submitMessage}
+            </span>
+          ) : null}
+        </div>
+
+        {companyLoadState === 'error' ? (
+          <div className="table-state table-state-error">
+            <p>{companyErrorMessage}</p>
+          </div>
+        ) : null}
+
+        <form className="property-form" onSubmit={handleCreateCompanyAdmin} noValidate>
+          <label className="field">
+            <span>First name</span>
+            <input
+              value={form.firstName}
+              onChange={(event) => updateFormField('firstName', event.target.value)}
+              autoComplete="given-name"
+            />
+            {formErrors.firstName ? <small>{formErrors.firstName}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Last name</span>
+            <input
+              value={form.lastName}
+              onChange={(event) => updateFormField('lastName', event.target.value)}
+              autoComplete="family-name"
+            />
+            {formErrors.lastName ? <small>{formErrors.lastName}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Email</span>
+            <input
+              value={form.email}
+              onChange={(event) => updateFormField('email', event.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              type="email"
+            />
+            {formErrors.email ? <small>{formErrors.email}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Temporary password</span>
+            <input
+              value={form.password}
+              onChange={(event) => updateFormField('password', event.target.value)}
+              autoComplete="new-password"
+              type="password"
+            />
+            {formErrors.password ? <small>{formErrors.password}</small> : null}
+          </label>
+
+          <label className="field field-wide">
+            <span>Company</span>
+            <select
+              value={form.companyId || ''}
+              onChange={(event) => updateFormField('companyId', event.target.value)}
+              disabled={companyLoadState !== 'success' || companies.length === 0}
+            >
+              <option value="">
+                {companyLoadState === 'loading'
+                  ? 'Loading companies'
+                  : companies.length === 0
+                    ? 'No active companies'
+                    : 'Select company'}
+              </option>
+              {companies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.companyId ? <small>{formErrors.companyId}</small> : null}
+          </label>
+
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={submitState === 'submitting' || companyLoadState !== 'success' || companies.length === 0}
+            >
+              {submitState === 'submitting' ? 'Creating...' : 'Create CompanyAdmin'}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <section className="data-panel" aria-live="polite">
         {loadState === 'loading' ? (
           <div className="table-state">
@@ -148,10 +347,10 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Verification</th>
+                    <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th>Email</th>
+                    <th>Verification</th>
                     <th>Company</th>
                     <th>Created</th>
                   </tr>
@@ -223,4 +422,43 @@ function formatDate(value: string) {
   }
 
   return dateFormatter.format(parsed)
+}
+
+function validateForm(form: CreateCompanyAdminPayload) {
+  const errors: FormErrors = {}
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!form.firstName.trim()) {
+    errors.firstName = 'First name is required.'
+  }
+
+  if (!form.lastName.trim()) {
+    errors.lastName = 'Last name is required.'
+  }
+
+  if (!form.email.trim()) {
+    errors.email = 'Email is required.'
+  } else if (!emailPattern.test(form.email.trim())) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  if (!form.password) {
+    errors.password = 'Temporary password is required.'
+  } else if (form.password.length < 8) {
+    errors.password = 'Temporary password must be at least 8 characters.'
+  } else if (!/[A-Z]/.test(form.password)) {
+    errors.password = 'Temporary password must include an uppercase letter.'
+  } else if (!/[a-z]/.test(form.password)) {
+    errors.password = 'Temporary password must include a lowercase letter.'
+  } else if (!/\d/.test(form.password)) {
+    errors.password = 'Temporary password must include a number.'
+  } else if (!/[^A-Za-z0-9]/.test(form.password)) {
+    errors.password = 'Temporary password must include a symbol.'
+  }
+
+  if (!form.companyId) {
+    errors.companyId = 'Select a company.'
+  }
+
+  return errors
 }

@@ -238,10 +238,25 @@ export type CreateAgentPayload = {
   phone?: string | null
 }
 
+export type CreateCompanyAdminPayload = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  companyId: number
+}
+
 export type CreateAgentResponse = {
   userId: string
   agentId: number
   email: string
+  companyId: number
+}
+
+export type CreateCompanyAdminResponse = {
+  id: string
+  email: string
+  role: string
   companyId: number
 }
 
@@ -401,6 +416,16 @@ export async function getMyCompanyAgents(signal?: AbortSignal) {
 
 export async function createAgent(payload: CreateAgentPayload) {
   return fetchJson<CreateAgentResponse>('/api/users/agents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createCompanyAdmin(payload: CreateCompanyAdminPayload) {
+  return fetchJson<CreateCompanyAdminResponse>('/api/users/company-admins', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
