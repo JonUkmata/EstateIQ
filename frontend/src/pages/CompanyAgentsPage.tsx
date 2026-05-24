@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import ErrorState from '../components/ErrorState'
+import LoadingState from '../components/LoadingState'
 import { createAgent, getMyCompanyAgents, type Agent, type CreateAgentPayload } from '../services/api'
 
 type LoadState = 'loading' | 'success' | 'error'
@@ -197,25 +199,10 @@ export default function CompanyAgentsPage() {
       </section>
 
       <section className="data-panel" aria-live="polite">
-        {loadState === 'loading' ? (
-          <div className="table-state">
-            <p className="state-with-spinner">
-              <LoadingSpinner label="Loading company agents" />
-              <span>Loading company agents...</span>
-            </p>
-          </div>
-        ) : null}
-
-        {loadState === 'error' ? (
-          <div className="table-state table-state-error">
-            <p>{errorMessage}</p>
-          </div>
-        ) : null}
-
+        {loadState === 'loading' ? <LoadingState message="Loading company agents..." /> : null}
+        {loadState === 'error' ? <ErrorState message={errorMessage} /> : null}
         {loadState === 'success' && agents.length === 0 ? (
-          <div className="table-state">
-            <p>No agents are connected to your company yet.</p>
-          </div>
+          <EmptyState message="No agents are connected to your company yet." />
         ) : null}
 
         {loadState === 'success' && agents.length > 0 ? (
