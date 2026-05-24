@@ -520,6 +520,65 @@ export async function updateUserStatus(id: string, payload: UpdateUserStatusPayl
   })
 }
 
+export type DashboardProperty = {
+  id: number
+  title: string
+  city: string
+  price: number
+  status: string
+  createdAt: string
+}
+
+export type AdminDashboard = {
+  role: 'Admin'
+  totalProperties: number
+  forSaleProperties: number
+  forRentProperties: number
+  soldProperties: number
+  rentedProperties: number
+  totalUsers: number
+  totalCompanies: number
+  totalAgents: number
+  recentProperties: DashboardProperty[]
+}
+
+export type CompanyAdminDashboard = {
+  role: 'CompanyAdmin'
+  companyId: number
+  companyName: string
+  companyProperties: number
+  companyAgents: number
+  forSaleProperties: number
+  forRentProperties: number
+  soldProperties: number
+  rentedProperties: number
+  recentCompanyProperties: DashboardProperty[]
+}
+
+export type AgentDashboard = {
+  role: 'Agent'
+  agentId: number
+  myProperties: number
+  myForSaleProperties: number
+  myForRentProperties: number
+  mySoldProperties: number
+  myRentedProperties: number
+  recentMyProperties: DashboardProperty[]
+}
+
+export type UserDashboard = {
+  role: 'User'
+  availableProperties: number
+  latestProperties: DashboardProperty[]
+  popularCities: string[]
+}
+
+export type Dashboard = AdminDashboard | CompanyAdminDashboard | AgentDashboard | UserDashboard
+
+export async function getMyDashboard(signal?: AbortSignal) {
+  return fetchJson<Dashboard>('/api/dashboard/me', { signal })
+}
+
 export async function registerUser(payload: RegisterRequest) {
   return fetchJson<RegisterResponse>('/api/auth/register', {
     method: 'POST',

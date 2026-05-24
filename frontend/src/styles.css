@@ -2134,3 +2134,104 @@ a {
     transform: none;
   }
 }
+
+/* ── Dashboard ─────────────────────────────────────────────────────────── */
+
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 0.85rem;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(57, 86, 68, 0.08);
+}
+
+.metric-card-value {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #11251c;
+}
+
+.metric-card-label {
+  color: #4a7861;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dashboard-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.shortcut-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(22, 49, 38, 0.12);
+  border-radius: 18px;
+  background: rgba(248, 251, 246, 0.94);
+  color: #11251c;
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.shortcut-card:hover {
+  border-color: rgba(41, 103, 73, 0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(57, 86, 68, 0.12);
+}
+
+.shortcut-card-label {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.shortcut-card-desc {
+  color: #4a7861;
+  font-size: 0.82rem;
+}
+
+.dashboard-section-title {
+  margin: 0 0 0.9rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.25rem;
+  color: #163126;
+}
+
+.dashboard-empty {
+  color: #4a7861;
+  font-size: 0.92rem;
+}
+
+.popular-cities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.city-tag {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(22, 49, 38, 0.14);
+  border-radius: 999px;
+  background: rgba(211, 235, 217, 0.7);
+  color: #1c5b34;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
