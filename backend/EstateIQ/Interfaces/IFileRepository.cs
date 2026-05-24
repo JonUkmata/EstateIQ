@@ -8,6 +8,8 @@ public interface IFileRepository
 
     Task<IReadOnlyList<FileRecord>> GetByEntityAsync(string entity, Guid entityId);
 
+    Task<IReadOnlyDictionary<Guid, FileRecord>> GetFirstByEntitiesAsync(string entity, IReadOnlyCollection<Guid> entityIds);
+
     Task<FileRecord?> GetByEntityAndIdAsync(string entity, Guid entityId, Guid id);
 
     Task AddRangeAsync(IEnumerable<FileRecord> files);

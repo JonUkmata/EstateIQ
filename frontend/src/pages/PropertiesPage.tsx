@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -19,6 +19,7 @@ import {
   type PropertyType,
 } from '../services/api'
 import LoadingSpinner from '../components/LoadingSpinner'
+import PropertyCard from '../components/properties/PropertyCard'
 
 type LoadState = 'loading' | 'success' | 'error'
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
@@ -80,12 +81,6 @@ const initialFilterState: PropertyFilterState = {
 }
 
 const propertiesPageSize = 10
-
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-})
 
 export default function PropertiesPage() {
   const navigate = useNavigate()
@@ -364,7 +359,7 @@ export default function PropertiesPage() {
       <div className="section-heading">
         <div>
           <span className="eyebrow">Properties</span>
-          <h1>Property Listings</h1>
+          <h1>Browse Properties</h1>
         </div>
         <span className={`response-badge response-badge-${loadState}`}>
           {loadState === 'error' ? 'Error' : propertyCountLabel}
@@ -730,57 +725,20 @@ export default function PropertiesPage() {
         )}
 
         {loadState === 'success' && properties.length > 0 && (
-          <div className="properties-table-wrap">
-            <table className="properties-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Title</th>
-                  <th>Price</th>
-                  <th>City</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {properties.map((property) => (
-                  <tr key={property.id}>
-                    <td data-label="ID">{property.id}</td>
-                    <td data-label="Title">{property.title}</td>
-                    <td data-label="Price">{currencyFormatter.format(property.price)}</td>
-                    <td data-label="City">{property.city}</td>
-                    <td data-label="Status">
-                      <span className="status-pill">{property.propertyStatus?.name ?? 'Unknown'}</span>
-                    </td>
-                    <td data-label="Actions">
-                      <div className="table-actions">
-                        <Link className="table-action-link" to={`/properties/${property.id}`}>
-                          Details
-                        </Link>
-                        {canEditProperty ? (
-                          <Link className="table-action-link" to={`/properties/${property.id}/edit`}>
-                            Edit
-                          </Link>
-                        ) : null}
-                        {canDeleteProperty ? (
-                          <button
-                            type="button"
-                            className="table-action-danger"
-                            onClick={() => {
-                              setDeleteMessage(null)
-                              setPropertyPendingDelete(property)
-                            }}
-                            disabled={deletingPropertyId === property.id}
-                          >
-                            {deletingPropertyId === property.id ? 'Deleting...' : 'Delete'}
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="property-card-grid">
+            {properties.map((property) => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                canEdit={canEditProperty}
+                canDelete={canDeleteProperty}
+                isDeleting={deletingPropertyId === property.id}
+                onDelete={(selectedProperty) => {
+                  setDeleteMessage(null)
+                  setPropertyPendingDelete(selectedProperty)
+                }}
+              />
+            ))}
           </div>
         )}
 

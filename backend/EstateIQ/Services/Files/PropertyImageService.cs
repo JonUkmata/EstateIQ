@@ -113,6 +113,32 @@ public class PropertyImageService(
             .ToList();
     }
 
+    public async Task<IReadOnlyDictionary<int, string>> GetCoverImageUrlsAsync(IReadOnlyCollection<int> propertyIds)
+    {
+        if (propertyIds.Count == 0)
+        {
+            return new Dictionary<int, string>();
+        }
+
+        var entityIdToPropertyId = propertyIds
+            .Distinct()
+            .ToDictionary(CreatePropertyEntityId, propertyId => propertyId);
+
+        var firstFiles = await _fileRepository.GetFirstByEntitiesAsync(PropertyEntity, entityIdToPropertyId.Keys.ToList());
+
+        var coverImageUrls = new Dictionary<int, string>();
+
+        foreach (var (entityId, file) in firstFiles)
+        {
+            if (entityIdToPropertyId.TryGetValue(entityId, out var propertyId))
+            {
+                coverImageUrls[propertyId] = file.FilePath;
+            }
+        }
+
+        return coverImageUrls;
+    }
+
     public async Task DeleteImageAsync(int propertyId, Guid imageId)
     {
         if (!await _propertyRepository.ExistsAsync(propertyId))

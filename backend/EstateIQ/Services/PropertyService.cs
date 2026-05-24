@@ -265,10 +265,20 @@ public class PropertyService(
         ValidateQueryParameters(queryParameters);
 
         var (items, totalCount) = await _propertyRepository.GetFilteredAsync(queryParameters);
+        var mappedItems = _mapper.Map<IEnumerable<PropertyDto>>(items).ToList();
+        var coverImageUrls = await _propertyImageService.GetCoverImageUrlsAsync(mappedItems.Select(item => item.Id).ToList());
+
+        foreach (var item in mappedItems)
+        {
+            if (coverImageUrls.TryGetValue(item.Id, out var coverImageUrl))
+            {
+                item.CoverImageUrl = coverImageUrl;
+            }
+        }
 
         return new PagedResult<PropertyDto>
         {
-            Items = _mapper.Map<IEnumerable<PropertyDto>>(items).ToList(),
+            Items = mappedItems,
             TotalCount = totalCount,
             Page = queryParameters.Page,
             PageSize = queryParameters.PageSize,

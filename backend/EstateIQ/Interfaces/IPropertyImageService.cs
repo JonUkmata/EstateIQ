@@ -9,5 +9,7 @@ public interface IPropertyImageService
 
     Task<IReadOnlyList<FileResponseDto>> GetImagesAsync(int propertyId);
 
+    Task<IReadOnlyDictionary<int, string>> GetCoverImageUrlsAsync(IReadOnlyCollection<int> propertyIds);
+
     Task DeleteImageAsync(int propertyId, Guid imageId);
 }

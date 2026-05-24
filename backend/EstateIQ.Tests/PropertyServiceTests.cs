@@ -278,6 +278,11 @@ public class PropertyServiceTests
             return Task.FromResult<IReadOnlyList<FileResponseDto>>([]);
         }
 
+        public Task<IReadOnlyDictionary<int, string>> GetCoverImageUrlsAsync(IReadOnlyCollection<int> propertyIds)
+        {
+            return Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
+        }
+
         public Task DeleteImageAsync(int propertyId, Guid imageId)
         {
             throw new NotSupportedException();
