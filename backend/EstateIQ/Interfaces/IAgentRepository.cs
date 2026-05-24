@@ -39,4 +39,9 @@ public interface IAgentRepository
     /// Checks whether an agent is active.
     /// </summary>
     Task<bool> IsActiveAsync(int id);
+
+    /// <summary>
+    /// Returns the active company ID for the agent linked to the given user, or null if not found.
+    /// </summary>
+    Task<int?> GetCompanyIdByUserIdAsync(Guid userId);
 }

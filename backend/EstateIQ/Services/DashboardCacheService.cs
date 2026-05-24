@@ -35,4 +35,16 @@ public class DashboardCacheService(
             logger.LogWarning(ex, "Redis cache set failed for key {Key}. Data will not be cached.", key);
         }
     }
+
+    public async Task DeleteAsync(string key)
+    {
+        try
+        {
+            await redis.DeleteAsync(key);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Redis cache delete failed for key {Key}.", key);
+        }
+    }
 }

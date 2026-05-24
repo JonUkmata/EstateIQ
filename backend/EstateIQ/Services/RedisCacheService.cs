@@ -17,4 +17,9 @@ public class RedisCacheService(IConnectionMultiplexer connectionMultiplexer) : I
         var value = await _database.StringGetAsync(key);
         return value.HasValue ? value.ToString() : null;
     }
+
+    public Task DeleteAsync(string key)
+    {
+        return _database.KeyDeleteAsync(key);
+    }
 }
