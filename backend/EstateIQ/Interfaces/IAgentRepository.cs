@@ -26,6 +26,11 @@ public interface IAgentRepository
     Task<IEnumerable<Models.Agent>> GetActiveByCompanyAsync(int companyId);
 
     /// <summary>
+    /// Gets active agents assigned to companies managed by the specified company admin user.
+    /// </summary>
+    Task<IEnumerable<Models.Agent>> GetActiveByCompanyAdminAsync(Guid companyAdminUserId);
+
+    /// <summary>
     /// Checks whether an agent exists.
     /// </summary>
     Task<bool> ExistsAsync(int id);

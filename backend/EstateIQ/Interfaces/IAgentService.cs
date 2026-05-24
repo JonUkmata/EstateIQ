@@ -14,4 +14,9 @@ public interface IAgentService
         bool includeInactive = false,
         string? search = null,
         int? companyId = null);
+
+    /// <summary>
+    /// Gets agents for the company managed by the specified company admin user.
+    /// </summary>
+    Task<IEnumerable<AgentDto>> GetForCompanyAdminAsync(Guid companyAdminUserId);
 }

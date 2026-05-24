@@ -61,6 +61,22 @@ public class AgentRepository(AppDbContext dbContext) : IAgentRepository
     }
 
     /// <summary>
+    /// Gets active agents assigned to companies managed by the specified company admin user.
+    /// </summary>
+    public async Task<IEnumerable<Agent>> GetActiveByCompanyAdminAsync(Guid companyAdminUserId)
+    {
+        return await CreateSortedQuery()
+            .Where(agent =>
+                agent.IsActive &&
+                agent.AgentCompanies.Any(agentCompany =>
+                    agentCompany.IsActive &&
+                    agentCompany.Company.CompanyUsers.Any(companyUser =>
+                        companyUser.UserId == companyAdminUserId &&
+                        companyUser.RelationshipType == "CompanyAdmin")))
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// Checks whether an agent exists.
     /// </summary>
     public Task<bool> ExistsAsync(int id)

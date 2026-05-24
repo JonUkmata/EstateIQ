@@ -18,4 +18,6 @@ public class AgentDto
     public string? Mobile { get; set; }
 
     public bool IsActive { get; set; }
+
+    public DateTime CreatedAt { get; set; }
 }

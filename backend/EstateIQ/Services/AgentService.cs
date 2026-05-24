@@ -72,4 +72,22 @@ public class AgentService(
 
         return result;
     }
+
+    /// <summary>
+    /// Gets agents for the company managed by the specified company admin user.
+    /// </summary>
+    public async Task<IEnumerable<AgentDto>> GetForCompanyAdminAsync(Guid companyAdminUserId)
+    {
+        _logger.LogInformation("Fetching company agents for CompanyAdmin user {UserId}.", companyAdminUserId);
+
+        var agents = await _agentRepository.GetActiveByCompanyAdminAsync(companyAdminUserId);
+        var result = _mapper.Map<IEnumerable<AgentDto>>(agents).ToList();
+
+        _logger.LogInformation(
+            "Returned {AgentCount} company agents for CompanyAdmin user {UserId}.",
+            result.Count,
+            companyAdminUserId);
+
+        return result;
+    }
 }

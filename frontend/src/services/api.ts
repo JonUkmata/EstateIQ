@@ -227,6 +227,7 @@ export type Agent = {
   phone?: string | null
   mobile?: string | null
   isActive: boolean
+  createdAt?: string
 }
 
 export type CreatePropertyPayload = {
@@ -354,6 +355,10 @@ export async function getCompanies(signal?: AbortSignal) {
 export async function getAgents(signal?: AbortSignal, companyId?: number) {
   const query = companyId ? `?companyId=${companyId}` : ''
   return fetchJson<Agent[]>(`/api/agents${query}`, { signal })
+}
+
+export async function getMyCompanyAgents(signal?: AbortSignal) {
+  return fetchJson<Agent[]>('/api/agents/my-company', { signal })
 }
 
 export async function createProperty(payload: CreatePropertyPayload) {
