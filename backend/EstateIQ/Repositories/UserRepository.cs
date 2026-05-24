@@ -78,6 +78,17 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
                 companyUser.RelationshipType == relationshipType);
     }
 
+    public Task<int?> GetCompanyIdForUserRelationshipAsync(Guid userId, string relationshipType)
+    {
+        return _dbContext.CompanyUsers
+            .AsNoTracking()
+            .Where(companyUser =>
+                companyUser.UserId == userId &&
+                companyUser.RelationshipType == relationshipType)
+            .Select(companyUser => (int?)companyUser.CompanyId)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task AddAgentUserAsync(User user, UserRole userRole, Agent agent, AgentCompany agentCompany)
     {
         _dbContext.Users.Add(user);

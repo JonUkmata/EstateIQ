@@ -117,15 +117,35 @@ public class UserService(
 
     public async Task<CreateAgentResponseDto> CreateAgentAsync(CreateAgentRequestDto request, Guid currentUserId, bool isAdmin)
     {
-        ValidateCreateAgentRequest(request);
+        ValidateCreateAgentRequest(request, isAdmin);
 
-        if (!await _userRepository.CompanyExistsAsync(request.CompanyId))
+        var companyId = request.CompanyId;
+        if (!isAdmin)
         {
-            throw new NotFoundException($"Company with id {request.CompanyId} was not found.");
+            var companyAdminCompanyId = await _userRepository.GetCompanyIdForUserRelationshipAsync(
+                currentUserId,
+                CompanyAdminRelationshipType);
+
+            if (companyAdminCompanyId is null)
+            {
+                throw new BusinessRuleException("CompanyAdmin is not assigned to a company.");
+            }
+
+            if (request.CompanyId > 0 && request.CompanyId != companyAdminCompanyId.Value)
+            {
+                throw new BusinessRuleException("CompanyAdmin can only create agents for their own company.");
+            }
+
+            companyId = companyAdminCompanyId.Value;
+        }
+
+        if (!await _userRepository.CompanyExistsAsync(companyId))
+        {
+            throw new NotFoundException($"Company with id {companyId} was not found.");
         }
 
         if (!isAdmin &&
-            !await _userRepository.CompanyUserExistsAsync(currentUserId, request.CompanyId, CompanyAdminRelationshipType))
+            !await _userRepository.CompanyUserExistsAsync(currentUserId, companyId, CompanyAdminRelationshipType))
         {
             throw new BusinessRuleException("CompanyAdmin can only create agents for their own company.");
         }
@@ -175,7 +195,7 @@ public class UserService(
         var agentCompany = new AgentCompany
         {
             Agent = agent,
-            CompanyId = request.CompanyId,
+            CompanyId = companyId,
             Role = AgentCompanyRoleName,
             IsActive = true,
             CreatedAt = now
@@ -188,7 +208,7 @@ public class UserService(
             UserId = user.Id,
             AgentId = agent.Id,
             Email = user.Email,
-            CompanyId = request.CompanyId
+            CompanyId = companyId
         };
     }
 
@@ -266,7 +286,7 @@ public class UserService(
         }
     }
 
-    private static void ValidateCreateAgentRequest(CreateAgentRequestDto request)
+    private static void ValidateCreateAgentRequest(CreateAgentRequestDto request, bool isAdmin)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -290,7 +310,7 @@ public class UserService(
             errors[nameof(request.Phone)] = ["Phone must be 50 characters or fewer."];
         }
 
-        if (request.CompanyId <= 0)
+        if (isAdmin && request.CompanyId <= 0)
         {
             errors[nameof(request.CompanyId)] = ["CompanyId is required."];
         }

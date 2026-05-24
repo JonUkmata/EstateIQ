@@ -230,6 +230,21 @@ export type Agent = {
   createdAt?: string
 }
 
+export type CreateAgentPayload = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  phone?: string | null
+}
+
+export type CreateAgentResponse = {
+  userId: string
+  agentId: number
+  email: string
+  companyId: number
+}
+
 export type CreatePropertyPayload = {
   title: string
   description?: string | null
@@ -359,6 +374,16 @@ export async function getAgents(signal?: AbortSignal, companyId?: number) {
 
 export async function getMyCompanyAgents(signal?: AbortSignal) {
   return fetchJson<Agent[]>('/api/agents/my-company', { signal })
+}
+
+export async function createAgent(payload: CreateAgentPayload) {
+  return fetchJson<CreateAgentResponse>('/api/users/agents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
 }
 
 export async function createProperty(payload: CreatePropertyPayload) {

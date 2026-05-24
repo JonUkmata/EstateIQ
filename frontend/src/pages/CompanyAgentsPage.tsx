@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { getMyCompanyAgents, type Agent } from '../services/api'
+import { createAgent, getMyCompanyAgents, type Agent, type CreateAgentPayload } from '../services/api'
 
 type LoadState = 'loading' | 'success' | 'error'
+type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+type FormErrors = Partial<Record<keyof CreateAgentPayload, string>>
+
+const initialForm: CreateAgentPayload = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  phone: '',
+}
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -13,30 +23,33 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 export default function CompanyAgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loadState, setLoadState] = useState<LoadState>('loading')
+  const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [submitMessage, setSubmitMessage] = useState('')
+  const [form, setForm] = useState<CreateAgentPayload>(initialForm)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+
+  async function loadAgents(signal?: AbortSignal) {
+    try {
+      setLoadState('loading')
+      setErrorMessage('')
+
+      const result = await getMyCompanyAgents(signal)
+      setAgents(result)
+      setLoadState('success')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return
+      }
+
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load company agents.')
+      setLoadState('error')
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
-
-    async function loadAgents() {
-      try {
-        setLoadState('loading')
-        setErrorMessage('')
-
-        const result = await getMyCompanyAgents(controller.signal)
-        setAgents(result)
-        setLoadState('success')
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return
-        }
-
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load company agents.')
-        setLoadState('error')
-      }
-    }
-
-    void loadAgents()
+    void loadAgents(controller.signal)
 
     return () => controller.abort()
   }, [])
@@ -49,6 +62,49 @@ export default function CompanyAgentsPage() {
     return `${agents.length} ${agents.length === 1 ? 'agent' : 'agents'}`
   }, [agents.length, loadState])
 
+  function updateFormField(field: keyof CreateAgentPayload, value: string) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+    setFormErrors((current) => ({
+      ...current,
+      [field]: undefined,
+    }))
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const validation = validateForm(form)
+    setFormErrors(validation)
+    setSubmitMessage('')
+
+    if (Object.keys(validation).length > 0) {
+      setSubmitState('error')
+      setSubmitMessage('Please fix the highlighted fields.')
+      return
+    }
+
+    try {
+      setSubmitState('submitting')
+      await createAgent({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        phone: form.phone?.trim() || null,
+      })
+      setForm(initialForm)
+      setFormErrors({})
+      setSubmitState('success')
+      setSubmitMessage('Agent created successfully.')
+      await loadAgents()
+    } catch (error) {
+      setSubmitState('error')
+      setSubmitMessage(error instanceof Error ? error.message : 'Failed to create agent.')
+    }
+  }
+
   return (
     <section className="content-stack">
       <div className="section-heading">
@@ -60,6 +116,85 @@ export default function CompanyAgentsPage() {
           {loadState === 'error' ? 'Error' : agentCountLabel}
         </span>
       </div>
+
+      <section className="form-panel">
+        <div className="form-panel-header">
+          <div>
+            <span className="panel-label">Create</span>
+            <h2>Add Agent</h2>
+          </div>
+          {submitMessage ? (
+            <span
+              className={`form-message ${
+                submitState === 'success' ? 'form-message-success' : 'form-message-error'
+              }`}
+            >
+              {submitMessage}
+            </span>
+          ) : null}
+        </div>
+
+        <form className="property-form" onSubmit={handleSubmit} noValidate>
+          <label className="field">
+            <span>First name</span>
+            <input
+              value={form.firstName}
+              onChange={(event) => updateFormField('firstName', event.target.value)}
+              autoComplete="given-name"
+            />
+            {formErrors.firstName ? <small>{formErrors.firstName}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Last name</span>
+            <input
+              value={form.lastName}
+              onChange={(event) => updateFormField('lastName', event.target.value)}
+              autoComplete="family-name"
+            />
+            {formErrors.lastName ? <small>{formErrors.lastName}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Email</span>
+            <input
+              value={form.email}
+              onChange={(event) => updateFormField('email', event.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              type="email"
+            />
+            {formErrors.email ? <small>{formErrors.email}</small> : null}
+          </label>
+
+          <label className="field">
+            <span>Temporary password</span>
+            <input
+              value={form.password}
+              onChange={(event) => updateFormField('password', event.target.value)}
+              autoComplete="new-password"
+              type="password"
+            />
+            {formErrors.password ? <small>{formErrors.password}</small> : null}
+          </label>
+
+          <label className="field field-wide">
+            <span>Phone</span>
+            <input
+              value={form.phone ?? ''}
+              onChange={(event) => updateFormField('phone', event.target.value)}
+              autoComplete="tel"
+            />
+            {formErrors.phone ? <small>{formErrors.phone}</small> : null}
+          </label>
+
+          <div className="form-actions">
+            <button type="submit" disabled={submitState === 'submitting'}>
+              {submitState === 'submitting' ? 'Creating...' : 'Create Agent'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <section className="data-panel" aria-live="polite">
         {loadState === 'loading' ? (
@@ -127,4 +262,35 @@ function formatCreatedAt(createdAt?: string) {
   }
 
   return dateFormatter.format(parsed)
+}
+
+function validateForm(form: CreateAgentPayload) {
+  const errors: FormErrors = {}
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!form.firstName.trim()) {
+    errors.firstName = 'First name is required.'
+  }
+
+  if (!form.lastName.trim()) {
+    errors.lastName = 'Last name is required.'
+  }
+
+  if (!form.email.trim()) {
+    errors.email = 'Email is required.'
+  } else if (!emailPattern.test(form.email.trim())) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  if (!form.password) {
+    errors.password = 'Temporary password is required.'
+  } else if (form.password.length < 8) {
+    errors.password = 'Temporary password must be at least 8 characters.'
+  }
+
+  if (form.phone && form.phone.trim().length > 50) {
+    errors.phone = 'Phone must be 50 characters or fewer.'
+  }
+
+  return errors
 }

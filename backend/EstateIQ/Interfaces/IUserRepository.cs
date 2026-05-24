@@ -16,6 +16,8 @@ public interface IUserRepository
 
     Task<bool> CompanyUserExistsAsync(Guid userId, int companyId, string relationshipType);
 
+    Task<int?> GetCompanyIdForUserRelationshipAsync(Guid userId, string relationshipType);
+
     Task AddAgentUserAsync(User user, UserRole userRole, Agent agent, AgentCompany agentCompany);
 
     Task<User?> GetByIdAsync(Guid id);
