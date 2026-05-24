@@ -4,15 +4,15 @@
 
 **Project Name:** EstateIQ  
 **Version:** 1.0.0  
-**Status:** Sprint 4 completed, ready for merge to main  
+**Status:** Sprint 5 completed, ready for merge to main  
 **Start Date:** 2026-04-14  
-**Last Updated:** 2026-05-11  
+**Last Updated:** 2026-05-24  
 
 ## Project Description
 
 EstateIQ is a full-stack real estate management system for managing property listings, companies, agents, users, roles, permissions, property images, property types, property statuses, and map-ready property location data.
 
-The project now includes the Sprint 4 security and image workflow: public registration, email verification, login/logout, JWT access tokens, refresh tokens, role/permission based authorization, protected property management APIs, user management endpoints, and property image upload/gallery support. The Sprint 3 property discovery workflow remains available with paginated and filtered property listings, create/edit/delete flows, property details, and a map page that displays properties with persisted coordinates. The backend follows a layered architecture with controllers, services, repositories, DTOs, AutoMapper profiles, EF Core models, seeders, and automated tests. The frontend is a React/Vite application that consumes the backend API through a local Vite `/api` proxy.
+The project now includes the full Sprint 5 role-based UI and Redis dashboard caching: role-aware navigation, a marketplace card grid with map search, dedicated management pages for Admin and CompanyAdmin, a role-based dashboard with real statistics, Redis caching of dashboard responses per role and scope, and immediate cache invalidation on data changes. Sprint 4 delivered the security layer: public registration, email verification, login/logout, JWT access tokens, refresh tokens, role/permission based authorization, protected property management APIs, user management endpoints, and property image upload/gallery support. Sprint 3 delivered property discovery with paginated and filtered listings, create/edit/delete flows, property details, and map integration. The backend follows a layered architecture with controllers, services, repositories, DTOs, AutoMapper profiles, EF Core models, seeders, and automated tests. The frontend is a React/Vite application that consumes the backend API through a local Vite `/api` proxy.
 
 ## Technology Stack
 
@@ -47,7 +47,7 @@ Swashbuckle.AspNetCore 6.6.2
 - **Test Framework:** xUnit 2.9.2
 - **Integration Testing:** `Microsoft.AspNetCore.Mvc.Testing` 9.0.10
 - **Test Database:** `Microsoft.EntityFrameworkCore.InMemory` 9.0.0
-- **Current Test Result:** 166 passing tests
+- **Current Test Result:** 188 passing tests
 
 ### Frontend
 
@@ -182,57 +182,52 @@ VITE_API_BASE_URL=""
 
 ### Current Features
 
-- Backend health test endpoint: `GET /api/test`
-- Database health endpoint: `GET /api/test/db`
-- Redis health endpoint: `GET /api/test/redis`
-- Public registration endpoint: `POST /api/auth/register`
-- Email verification endpoint: `POST /api/auth/verify-email`
-- Login endpoint: `POST /api/auth/login`
-- Refresh token endpoint: `POST /api/auth/refresh`
-- Logout endpoint: `POST /api/auth/logout`
-- User list endpoint: `GET /api/users`
-- Company admin creation endpoint: `POST /api/users/company-admins`
-- Agent user creation endpoint: `POST /api/users/agents`
-- User activation/deactivation endpoint: `PATCH /api/users/{id}/status`
-- Property types dropdown endpoint: `GET /api/propertytypes`
-- Property statuses dropdown endpoint: `GET /api/propertystatuses`
-- Companies dropdown endpoint: `GET /api/companies`
-- Agents dropdown endpoint: `GET /api/agents`
-- Agents by company filter: `GET /api/agents?companyId={id}`
-- Paginated and filtered properties endpoint: `GET /api/properties`
-- Property details endpoint: `GET /api/properties/{id}`
-- Property creation endpoint: `POST /api/properties`
-- Property update endpoint: `PUT /api/properties/{id}`
-- Property delete endpoint: `DELETE /api/properties/{id}`
-- Property image upload endpoint: `POST /api/properties/{id}/images`
-- Property image list endpoint: `GET /api/properties/{id}/images`
-- Property image delete endpoint: `DELETE /api/properties/{id}/images/{imageId}`
+#### Backend API
+
+- Health check endpoints: `GET /api/test`, `/api/test/db`, `/api/test/redis`
+- Auth endpoints: register, verify email, login, refresh token, logout
+- Role-based dashboard endpoint: `GET /api/dashboard/me`
+- User management: list, create CompanyAdmin, create Agent, activate/deactivate
+- Property management: paginated list, details, create, update, delete
+- Property image management: upload, list, delete
+- Company agents endpoint: `GET /api/agents/my-company` for CompanyAdmin scope
+- Lookup endpoints: companies, agents, property types, property statuses
 - JWT authentication with role and permission claims
-- Permission-based protection for property write APIs, company/agent management APIs, user management APIs, and image upload/delete APIs
-- Properties frontend page with search, filters, pagination, create form, edit/details links, and delete confirmation
-- Property details page at `/properties/:id`
-- Property edit page at `/properties/:id/edit`
-- Property map page at `/map` using Leaflet markers from persisted latitude/longitude values
-- Register page at `/register`
-- Login page at `/login`
-- Verify email page at `/verify-email`
-- Protected route wrapper and role-aware navigation
-- Property image gallery and upload UI on property details
-- Latitude/longitude persistence and API return values for map visualization
-- Automatic seed data for property types, statuses, companies, agents, agent-company relationships, and demo properties
-- Template `/weatherforecast` endpoint removed during Sprint 3 stabilization
+- Permission-based protection for property write, user management, and image APIs
+- Redis caching for dashboard responses per role and scope (30-minute TTL)
+- Immediate cache invalidation when properties, agents, company admins, or users change
+- Automatic seed data for roles, permissions, companies, agents, properties, and an admin account
+
+#### Frontend
+
+- Auth landing page at `/` with redirect logic by role
+- Login page at `/login` with role-based redirect after login
+- Registration page at `/register` with simulated email verification demo flow
+- Verify email page at `/verify-email` (query string token or manual paste)
+- Marketplace card grid at `/properties` with search, city, type, status, and price filters
+- Property details page at `/properties/:id` with image gallery and upload UI
+- Property create page at `/properties/new` (CreateProperty permission required)
+- Property edit page at `/properties/:id/edit` (EditProperty permission required)
+- Full map search at `/map` with Leaflet markers, sidebar, and filter panel
+- "View on Map" / "View as List" links that carry current filters between views
+- Role-based dashboard at `/dashboard` with metric cards, shortcuts, and recent properties
+- My Properties page at `/my-properties` for Agent role
+- Company Agents page at `/company/agents` for CompanyAdmin (view agents + create agent form)
+- Admin Users page at `/admin/users` for Admin (user list + activate/deactivate + create CompanyAdmin form)
+- Role-aware navigation: link set changes based on authenticated role
+- Protected routes with `requiredRoles` and `requiredPermissions` checks
+- Shared `LoadingState`, `EmptyState`, and `ErrorState` components used consistently across all pages
 
 ### Planned Features
 
-- Agent/company management pages
-- Dashboard metrics backed by real API data
-- Real SMTP email delivery
+- Real SMTP email delivery for registration and account recovery
 - Forgot password and reset password flow
-- Image ordering and cover image support
+- Cloud file storage for property images
+- Image ordering and cover image selection
+- Frontend automated test suite
 - ML price prediction API integration
 - Geocoding or map-based coordinate picker
 - Production deployment configuration
-- Stronger frontend test coverage
 
 ## Getting Started
 
@@ -290,18 +285,24 @@ Expected frontend URL:
 | Area | URL |
 | --- | --- |
 | Frontend | `http://localhost:5173` |
-| Properties Page | `http://localhost:5173/properties` |
-| Property Details | `http://localhost:5173/properties/{id}` |
-| Edit Property | `http://localhost:5173/properties/{id}/edit` |
-| Property Map | `http://localhost:5173/map` |
 | Login | `http://localhost:5173/login` |
 | Register | `http://localhost:5173/register` |
 | Verify Email | `http://localhost:5173/verify-email` |
+| Dashboard | `http://localhost:5173/dashboard` |
+| Properties | `http://localhost:5173/properties` |
+| Create Property | `http://localhost:5173/properties/new` |
+| Property Details | `http://localhost:5173/properties/{id}` |
+| Edit Property | `http://localhost:5173/properties/{id}/edit` |
+| Property Map | `http://localhost:5173/map` |
+| My Properties (Agent) | `http://localhost:5173/my-properties` |
+| Company Agents (CompanyAdmin) | `http://localhost:5173/company/agents` |
+| Admin Users (Admin) | `http://localhost:5173/admin/users` |
 | Backend API | `http://localhost:5222` |
 | Swagger UI | `http://localhost:5222/swagger` |
 | API Health | `http://localhost:5222/api/test` |
 | Database Health | `http://localhost:5222/api/test/db` |
 | Redis Health | `http://localhost:5222/api/test/redis` |
+| Dashboard API | `http://localhost:5222/api/dashboard/me` |
 
 ## Team Members
 
@@ -320,14 +321,15 @@ Sprint summaries live under `docs/sprints/`:
 - `docs/sprints/sprint-2.md`
 - `docs/sprints/sprint-3.md`
 - `docs/sprints/sprint-4.md`
+- `docs/sprints/sprint-5.md`
 
 ## Latest Verification
 
-Last verified on 2026-05-11:
+Last verified on 2026-05-24:
 
 ```text
 dotnet test backend\EstateIQ.Tests\EstateIQ.Tests.csproj
-Result: 166/166 passing
+Result: 188/188 passing
 
 dotnet build backend\EstateIQ\EstateIQ.csproj --configuration Release
 Result: passed, 0 warnings, 0 errors
