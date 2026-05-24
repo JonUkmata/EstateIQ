@@ -155,6 +155,11 @@ export type Property = {
   yearBuilt?: number | null
   latitude?: number | null
   longitude?: number | null
+  coverImageUrl?: string | null
+  propertyType?: {
+    id: number
+    name: string
+  } | null
   propertyStatus?: {
     id: number
     name: string
