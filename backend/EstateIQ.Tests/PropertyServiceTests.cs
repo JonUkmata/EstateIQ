@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
+#pragma warning disable CA2000 // Dispose objects before losing scope — test contexts disposed by callers
+
 namespace EstateIQ.Tests;
 
 public class PropertyServiceTests
@@ -250,7 +252,9 @@ public class PropertyServiceTests
         configuration.AssertConfigurationIsValid();
     }
 
-    private static PropertyService CreateService(AppDbContext dbContext)
+    private static PropertyService CreateService(
+        AppDbContext dbContext,
+        IDashboardInvalidationService? invalidation = null)
     {
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>()).CreateMapper();
 
@@ -263,7 +267,16 @@ public class PropertyServiceTests
             new AgentCompanyRepository(dbContext),
             new EmptyPropertyImageService(),
             mapper,
-            NullLogger<PropertyService>.Instance);
+            NullLogger<PropertyService>.Instance,
+            invalidation ?? new NullDashboardInvalidationService());
+    }
+
+    private sealed class NullDashboardInvalidationService : IDashboardInvalidationService
+    {
+        public Task InvalidateDashboardsForPropertyChangeAsync(int companyId, int agentId) => Task.CompletedTask;
+        public Task InvalidateDashboardsForAgentChangeAsync(int companyId) => Task.CompletedTask;
+        public Task InvalidateDashboardsForCompanyAdminChangeAsync(int companyId) => Task.CompletedTask;
+        public Task InvalidateDashboardsForUserChangeAsync() => Task.CompletedTask;
     }
 
     private sealed class EmptyPropertyImageService : IPropertyImageService
