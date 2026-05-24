@@ -2,7 +2,9 @@ import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'rea
 import L from 'leaflet'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { Link } from 'react-router-dom'
 import {
+  buildFileUrl,
   getProperties,
   getPropertyStatuses,
   getPropertyTypes,
@@ -32,15 +34,21 @@ const tiranaCenter: [number, number] = [41.3275, 19.8187]
 const mapPageSize = 100
 
 type MapFilterState = {
+  search: string
   city: string
   propertyTypeId: string
   propertyStatusId: string
+  minPrice: string
+  maxPrice: string
 }
 
 const initialMapFilters: MapFilterState = {
+  search: '',
   city: '',
   propertyTypeId: '',
   propertyStatusId: '',
+  minPrice: '',
+  maxPrice: '',
 }
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -59,6 +67,7 @@ export default function MapPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null)
   const markerRefs = useRef<Record<number, L.Marker | null>>({})
+  const debouncedFilters = useDebouncedValue(filters, 350)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -98,9 +107,12 @@ export default function MapPage() {
         setErrorMessage('')
 
         const propertiesResult = await getProperties(controller.signal, {
-          city: filters.city,
-          propertyTypeId: filters.propertyTypeId,
-          propertyStatusId: filters.propertyStatusId,
+          search: debouncedFilters.search,
+          city: debouncedFilters.city,
+          propertyTypeId: debouncedFilters.propertyTypeId,
+          propertyStatusId: debouncedFilters.propertyStatusId,
+          minPrice: debouncedFilters.minPrice,
+          maxPrice: debouncedFilters.maxPrice,
           page: 1,
           pageSize: mapPageSize,
         })
@@ -121,7 +133,7 @@ export default function MapPage() {
     void loadProperties()
 
     return () => controller.abort()
-  }, [filters])
+  }, [debouncedFilters])
 
   const markerProperties = useMemo(
     () =>
@@ -171,8 +183,8 @@ export default function MapPage() {
     <section className="content-stack">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Map</span>
-          <h1>Property Map</h1>
+          <span className="eyebrow">Map Search</span>
+          <h1>Search Properties on the Map</h1>
         </div>
         <span className={`response-badge response-badge-${loadState}`}>
           {loadState === 'error' ? 'Error' : `${markerProperties.length} markers`}
@@ -180,6 +192,19 @@ export default function MapPage() {
       </div>
 
       <section className="map-filter-panel">
+        <div className="search-panel-copy">
+          <h2>Find listings by location, type, status, price, or keyword</h2>
+        </div>
+        <label className="search-field filter-field">
+          <span>Search</span>
+          <input
+            value={filters.search}
+            onChange={(event) => updateFilter('search', event.target.value)}
+            placeholder="Search title or description"
+            type="search"
+          />
+        </label>
+
         <label className="filter-field">
           <span>City</span>
           <select value={filters.city} onChange={(event) => updateFilter('city', event.target.value)}>
@@ -222,6 +247,30 @@ export default function MapPage() {
           </select>
         </label>
 
+        <label className="filter-field">
+          <span>Min Price</span>
+          <input
+            value={filters.minPrice}
+            onChange={(event) => updateFilter('minPrice', event.target.value)}
+            min="0"
+            step="0.01"
+            type="number"
+            placeholder="0"
+          />
+        </label>
+
+        <label className="filter-field">
+          <span>Max Price</span>
+          <input
+            value={filters.maxPrice}
+            onChange={(event) => updateFilter('maxPrice', event.target.value)}
+            min="0"
+            step="0.01"
+            type="number"
+            placeholder="500000"
+          />
+        </label>
+
         <div className="filter-actions">
           <button type="button" onClick={resetFilters}>
             Clear
@@ -250,19 +299,19 @@ export default function MapPage() {
 
           {loadState === 'success' &&
             markerProperties.map((property) => (
-              <button
+              <article
                 key={property.id}
-                type="button"
                 className={`map-property-item ${
                   selectedPropertyId === property.id ? 'map-property-item-active' : ''
                 }`}
-                onClick={() => selectProperty(property)}
-                aria-pressed={selectedPropertyId === property.id}
               >
-                <span>{property.title}</span>
-                <strong>{currencyFormatter.format(property.price)}</strong>
-                <small>{property.city}</small>
-              </button>
+                <button type="button" onClick={() => selectProperty(property)}>
+                  <MapPropertyCard property={property} />
+                </button>
+                <Link className="map-card-details-link" to={`/properties/${property.id}`}>
+                  View Details
+                </Link>
+              </article>
             ))}
         </aside>
 
@@ -292,11 +341,7 @@ export default function MapPage() {
                 }}
               >
                 <Popup>
-                  <div className="map-popup">
-                    <strong>{property.title}</strong>
-                    <span>{currencyFormatter.format(property.price)}</span>
-                    <span>{property.city}</span>
-                  </div>
+                  <MapPopupCard property={property} />
                 </Popup>
               </Marker>
             ))}
@@ -304,6 +349,43 @@ export default function MapPage() {
         </section>
       </section>
     </section>
+  )
+}
+
+function MapPropertyCard({ property }: { property: Property }) {
+  const coverUrl = property.coverImageUrl ? buildFileUrl(property.coverImageUrl) : null
+  const typeName = property.propertyType?.name
+
+  return (
+    <div className="map-property-card">
+      <div className="map-property-card-media">
+        {coverUrl ? <img src={coverUrl} alt="" loading="lazy" /> : <span>No image</span>}
+      </div>
+      <div className="map-property-card-copy">
+        <strong>{currencyFormatter.format(property.price)}</strong>
+        <span>{property.title || `${typeName ?? 'Property'} in ${property.city}`}</span>
+        <small>{[property.city, typeName].filter(Boolean).join(' - ')}</small>
+      </div>
+    </div>
+  )
+}
+
+function MapPopupCard({ property }: { property: Property }) {
+  const coverUrl = property.coverImageUrl ? buildFileUrl(property.coverImageUrl) : null
+  const title = property.title || `${property.propertyType?.name ?? 'Property'} in ${property.city}`
+
+  return (
+    <div className="map-popup-card">
+      <div className="map-popup-media">
+        {coverUrl ? <img src={coverUrl} alt="" loading="lazy" /> : <span>No image</span>}
+      </div>
+      <div className="map-popup-copy">
+        <strong>{currencyFormatter.format(property.price)}</strong>
+        <span>{title}</span>
+        <small>{property.city}</small>
+        <Link to={`/properties/${property.id}`}>View Details</Link>
+      </div>
+    </div>
   )
 }
 
@@ -345,4 +427,18 @@ function getUniqueCities(properties: Property[], existingCities: string[] = []) 
       [...existingCities, ...properties.map((property) => property.city.trim())].filter(Boolean),
     ),
   ).sort((first, second) => first.localeCompare(second))
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, delayMs)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [value, delayMs])
+
+  return debouncedValue
 }
