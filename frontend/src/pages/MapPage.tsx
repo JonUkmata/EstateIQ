@@ -12,6 +12,7 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from '../services/api'
+import ErrorState from '../components/ErrorState'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const propertyPinIcon = L.divIcon({
@@ -293,11 +294,7 @@ export default function MapPage() {
         </div>
       </section>
 
-      {loadState === 'error' && (
-        <div className="table-state table-state-error">
-          <p>{errorMessage}</p>
-        </div>
-      )}
+      {loadState === 'error' && <ErrorState message={errorMessage} />}
 
       <section className="map-sync-layout">
         <aside className="map-property-list" aria-label="Map property list">
