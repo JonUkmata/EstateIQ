@@ -12,7 +12,9 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from '../services/api'
-import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import ErrorState from '../components/ErrorState'
+import LoadingState from '../components/LoadingState'
 import PropertyCard from '../components/properties/PropertyCard'
 
 type LoadState = 'loading' | 'success' | 'error'
@@ -352,25 +354,10 @@ export default function PropertiesPage() {
           </div>
         )}
 
-        {loadState === 'loading' && (
-          <div className="table-state">
-            <p className="state-with-spinner">
-              <LoadingSpinner label="Loading properties" />
-              <span>Loading properties...</span>
-            </p>
-          </div>
-        )}
-
-        {loadState === 'error' && (
-          <div className="table-state table-state-error">
-            <p>{errorMessage}</p>
-          </div>
-        )}
-
+        {loadState === 'loading' && <LoadingState message="Loading properties..." />}
+        {loadState === 'error' && <ErrorState message={errorMessage} />}
         {loadState === 'success' && properties.length === 0 && (
-          <div className="table-state">
-            <p>No properties match the current filters.</p>
-          </div>
+          <EmptyState message="No properties match the current filters." />
         )}
 
         {loadState === 'success' && properties.length > 0 && (

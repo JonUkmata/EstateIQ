@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import ErrorState from '../components/ErrorState'
+import LoadingState from '../components/LoadingState'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import type {
@@ -51,25 +53,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {loading && (
-        <div className="response-card">
-          <p className="state-with-spinner">
-            <LoadingSpinner />
-            Loading dashboard...
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="response-card">
-          <p className="form-message form-message-error">{error}</p>
-        </div>
-      )}
-
+      {loading && <LoadingState message="Loading dashboard..." />}
+      {error && <ErrorState message={error} />}
       {!loading && !error && !dashboard && (
-        <div className="response-card">
-          <p className="dashboard-empty">No dashboard data available.</p>
-        </div>
+        <EmptyState message="No dashboard data available." />
       )}
 
       {dashboard?.role === 'Admin' && <AdminView data={dashboard} />}

@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
+import ErrorState from '../components/ErrorState'
+import LoadingState from '../components/LoadingState'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -266,25 +268,10 @@ export default function AdminUsersPage() {
           </div>
         )}
 
-        {loadState === 'loading' ? (
-          <div className="table-state">
-            <p className="state-with-spinner">
-              <LoadingSpinner label="Loading users" />
-              <span>Loading users...</span>
-            </p>
-          </div>
-        ) : null}
-
-        {loadState === 'error' ? (
-          <div className="table-state table-state-error">
-            <p>{errorMessage}</p>
-          </div>
-        ) : null}
-
+        {loadState === 'loading' ? <LoadingState message="Loading users..." /> : null}
+        {loadState === 'error' ? <ErrorState message={errorMessage} /> : null}
         {loadState === 'success' && users.length === 0 ? (
-          <div className="table-state">
-            <p>No users match the current filters.</p>
-          </div>
+          <EmptyState message="No users match the current filters." />
         ) : null}
 
         {loadState === 'success' && users.length > 0 ? (
@@ -394,11 +381,7 @@ export default function AdminUsersPage() {
           ) : null}
         </div>
 
-        {companyLoadState === 'error' ? (
-          <div className="table-state table-state-error">
-            <p>{companyErrorMessage}</p>
-          </div>
-        ) : null}
+        {companyLoadState === 'error' ? <ErrorState message={companyErrorMessage} /> : null}
 
         <form className="property-form" onSubmit={handleCreateCompanyAdmin} noValidate>
           <label className="field">

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import { getPropertyById, getPropertyImages, type PropertyDetails } from '../services/api'
+import ErrorState from '../components/ErrorState'
 import LoadingSpinner from '../components/LoadingSpinner'
 import PropertyImageGallery from '../components/properties/PropertyImageGallery'
 import PropertyImageUpload from '../components/properties/PropertyImageUpload'
@@ -115,9 +116,7 @@ export default function PropertyDetailsPage() {
           <span className="response-badge response-badge-error">Error</span>
         </div>
         <section className="data-panel">
-          <div className="table-state table-state-error">
-            <p>{errorMessage || 'Property was not found.'}</p>
-          </div>
+          <ErrorState message={errorMessage || 'Property was not found.'} />
         </section>
       </section>
     )
@@ -181,9 +180,7 @@ export default function PropertyDetailsPage() {
 
       {imagesError ? (
         <section className="data-panel">
-          <div className="table-state table-state-error">
-            <p>{imagesError}</p>
-          </div>
+          <ErrorState message={imagesError} />
         </section>
       ) : null}
 
