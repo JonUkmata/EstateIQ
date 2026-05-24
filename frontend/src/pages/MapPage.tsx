@@ -2,7 +2,7 @@ import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'rea
 import L from 'leaflet'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   buildFileUrl,
   getProperties,
@@ -50,6 +50,7 @@ const initialMapFilters: MapFilterState = {
   minPrice: '',
   maxPrice: '',
 }
+const propertyQueryKeys = ['search', 'city', 'propertyTypeId', 'propertyStatusId', 'minPrice', 'maxPrice'] as const
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -58,11 +59,19 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 })
 
 export default function MapPage() {
+  const [searchParams] = useSearchParams()
   const [properties, setProperties] = useState<Property[]>([])
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
   const [propertyStatuses, setPropertyStatuses] = useState<PropertyStatus[]>([])
   const [cityOptions, setCityOptions] = useState<string[]>([])
-  const [filters, setFilters] = useState<MapFilterState>(initialMapFilters)
+  const [filters, setFilters] = useState<MapFilterState>(() => ({
+    search: searchParams.get('search') ?? '',
+    city: searchParams.get('city') ?? '',
+    propertyTypeId: searchParams.get('propertyTypeId') ?? '',
+    propertyStatusId: searchParams.get('propertyStatusId') ?? '',
+    minPrice: searchParams.get('minPrice') ?? '',
+    maxPrice: searchParams.get('maxPrice') ?? '',
+  }))
   const [loadState, setLoadState] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null)
@@ -153,6 +162,7 @@ export default function MapPage() {
     () => markerProperties.find((property) => property.id === selectedPropertyId) ?? null,
     [markerProperties, selectedPropertyId],
   )
+  const listSearchPath = useMemo(() => buildPropertyQueryPath('/properties', filters), [filters])
 
   useEffect(() => {
     if (selectedPropertyId && !selectedProperty) {
@@ -186,9 +196,14 @@ export default function MapPage() {
           <span className="eyebrow">Map Search</span>
           <h1>Search Properties on the Map</h1>
         </div>
-        <span className={`response-badge response-badge-${loadState}`}>
-          {loadState === 'error' ? 'Error' : `${markerProperties.length} markers`}
-        </span>
+        <div className="section-heading-actions">
+          <Link className="table-action-link" to={listSearchPath}>
+            View as List
+          </Link>
+          <span className={`response-badge response-badge-${loadState}`}>
+            {loadState === 'error' ? 'Error' : `${markerProperties.length} markers`}
+          </span>
+        </div>
       </div>
 
       <section className="map-filter-panel">
@@ -441,4 +456,21 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs])
 
   return debouncedValue
+}
+
+function buildPropertyQueryPath(
+  pathname: string,
+  values: Record<(typeof propertyQueryKeys)[number], string>,
+) {
+  const parameters = new URLSearchParams()
+
+  propertyQueryKeys.forEach((key) => {
+    const value = values[key]?.trim()
+    if (value) {
+      parameters.set(key, value)
+    }
+  })
+
+  const queryString = parameters.toString()
+  return queryString ? `${pathname}?${queryString}` : pathname
 }

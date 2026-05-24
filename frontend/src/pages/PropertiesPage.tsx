@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Permissions } from '../constants/auth'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -34,8 +34,10 @@ const initialFilterState: PropertyFilterState = {
 }
 
 const propertiesPageSize = 10
+const propertyQueryKeys = ['search', 'city', 'propertyTypeId', 'propertyStatusId', 'minPrice', 'maxPrice'] as const
 
 export default function PropertiesPage() {
+  const [searchParams] = useSearchParams()
   const { hasPermission } = useAuth()
   const canCreateProperty = hasPermission(Permissions.CreateProperty)
   const canEditProperty = hasPermission(Permissions.EditProperty)
@@ -44,7 +46,13 @@ export default function PropertiesPage() {
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([])
   const [propertyStatuses, setPropertyStatuses] = useState<PropertyStatus[]>([])
   const [cityOptions, setCityOptions] = useState<string[]>([])
-  const [filters, setFilters] = useState<PropertyFilterState>(initialFilterState)
+  const [filters, setFilters] = useState<PropertyFilterState>(() => ({
+    city: searchParams.get('city') ?? '',
+    propertyTypeId: searchParams.get('propertyTypeId') ?? '',
+    propertyStatusId: searchParams.get('propertyStatusId') ?? '',
+    minPrice: searchParams.get('minPrice') ?? '',
+    maxPrice: searchParams.get('maxPrice') ?? '',
+  }))
   const [pagination, setPagination] = useState<PagedResult<Property>>({
     items: [],
     totalCount: 0,
@@ -58,7 +66,7 @@ export default function PropertiesPage() {
   const [propertyPendingDelete, setPropertyPendingDelete] = useState<Property | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [deleteMessage, setDeleteMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') ?? '')
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 350)
   const debouncedFilters = useDebouncedValue(filters, 350)
 
@@ -137,6 +145,14 @@ export default function PropertiesPage() {
 
     return `${pagination.totalCount} ${pagination.totalCount === 1 ? 'property' : 'properties'}`
   }, [loadState, pagination.totalCount])
+  const mapSearchPath = useMemo(
+    () =>
+      buildPropertyQueryPath('/map', {
+        search: searchTerm,
+        ...filters,
+      }),
+    [filters, searchTerm],
+  )
 
   function updateFilterField(field: keyof PropertyFilterState, value: string) {
     setCurrentPage(1)
@@ -218,9 +234,14 @@ export default function PropertiesPage() {
           <span className="eyebrow">Properties</span>
           <h1>Browse Properties</h1>
         </div>
-        <span className={`response-badge response-badge-${loadState}`}>
-          {loadState === 'error' ? 'Error' : propertyCountLabel}
-        </span>
+        <div className="section-heading-actions">
+          <Link className="table-action-link" to={mapSearchPath}>
+            View on Map
+          </Link>
+          <span className={`response-badge response-badge-${loadState}`}>
+            {loadState === 'error' ? 'Error' : propertyCountLabel}
+          </span>
+        </div>
       </div>
 
       <section className="search-panel">
@@ -476,4 +497,21 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
   }, [value, delayMs])
 
   return debouncedValue
+}
+
+function buildPropertyQueryPath(
+  pathname: string,
+  values: Record<(typeof propertyQueryKeys)[number], string>,
+) {
+  const parameters = new URLSearchParams()
+
+  propertyQueryKeys.forEach((key) => {
+    const value = values[key]?.trim()
+    if (value) {
+      parameters.set(key, value)
+    }
+  })
+
+  const queryString = parameters.toString()
+  return queryString ? `${pathname}?${queryString}` : pathname
 }
