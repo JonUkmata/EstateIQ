@@ -403,19 +403,23 @@ function formatName(user: AdminUser) {
   return `${user.firstName} ${user.lastName}`.trim() || 'Unnamed user'
 }
 
-function formatRoles(roles: string[]) {
-  return roles.length > 0 ? roles.join(', ') : 'No role'
+function formatRoles(roles?: string[]) {
+  return roles && roles.length > 0 ? roles.join(', ') : 'No role'
 }
 
 function formatCompanies(user: AdminUser) {
-  if (user.companies.length === 0) {
+  if (!user.companies || user.companies.length === 0) {
     return 'Not assigned'
   }
 
   return user.companies.map((company) => `${company.name} (${company.relationshipType})`).join(', ')
 }
 
-function formatDate(value: string) {
+function formatDate(value?: string) {
+  if (!value) {
+    return 'Not available'
+  }
+
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
     return 'Not available'

@@ -267,9 +267,9 @@ export type AdminUser = {
   email: string
   isActive: boolean
   isEmailConfirmed: boolean
-  createdAt: string
-  roles: string[]
-  companies: {
+  createdAt?: string
+  roles?: string[]
+  companies?: {
     id: number
     name: string
     relationshipType: string
