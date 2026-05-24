@@ -8,9 +8,11 @@ using System.Security.Claims;
 
 namespace EstateIQ.Services;
 
-public class DashboardService(AppDbContext dbContext) : IDashboardService
+public class DashboardService(AppDbContext dbContext, IDashboardCacheService cache) : IDashboardService
 {
     private readonly AppDbContext _dbContext = dbContext;
+    private readonly IDashboardCacheService _cache = cache;
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
 
     public async Task<object> GetDashboardAsync(Guid userId, ClaimsPrincipal principal)
     {
@@ -28,6 +30,10 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
 
     private async Task<AdminDashboardDto> GetAdminDashboardAsync()
     {
+        const string key = DashboardCacheKeys.AdminGlobal;
+        var cached = await _cache.GetAsync<AdminDashboardDto>(key);
+        if (cached is not null) return cached;
+
         var statusNames = await _dbContext.Properties
             .AsNoTracking()
             .Include(p => p.PropertyStatus)
@@ -50,7 +56,7 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             })
             .ToListAsync();
 
-        return new AdminDashboardDto
+        var result = new AdminDashboardDto
         {
             TotalProperties = statusNames.Count,
             ForSaleProperties = statusNames.Count(n => n == "For Sale"),
@@ -62,6 +68,9 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             TotalAgents = await _dbContext.Agents.CountAsync(a => a.IsActive),
             RecentProperties = recentProperties
         };
+
+        await _cache.SetAsync(key, result, CacheTtl);
+        return result;
     }
 
     private async Task<CompanyAdminDashboardDto> GetCompanyAdminDashboardAsync(Guid userId)
@@ -75,6 +84,9 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             return new CompanyAdminDashboardDto();
 
         var companyId = companyUser.CompanyId;
+        var key = DashboardCacheKeys.CompanyAdmin(companyId);
+        var cached = await _cache.GetAsync<CompanyAdminDashboardDto>(key);
+        if (cached is not null) return cached;
 
         var statusNames = await _dbContext.Properties
             .AsNoTracking()
@@ -104,7 +116,7 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             })
             .ToListAsync();
 
-        return new CompanyAdminDashboardDto
+        var result = new CompanyAdminDashboardDto
         {
             CompanyId = companyId,
             CompanyName = companyUser.Company.Name,
@@ -116,6 +128,9 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             RentedProperties = statusNames.Count(n => n == "Rented"),
             RecentCompanyProperties = recentProperties
         };
+
+        await _cache.SetAsync(key, result, CacheTtl);
+        return result;
     }
 
     private async Task<AgentDashboardDto> GetAgentDashboardAsync(Guid userId)
@@ -126,6 +141,10 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
 
         if (agent is null)
             return new AgentDashboardDto();
+
+        var key = DashboardCacheKeys.Agent(agent.Id);
+        var cached = await _cache.GetAsync<AgentDashboardDto>(key);
+        if (cached is not null) return cached;
 
         var statusNames = await _dbContext.Properties
             .AsNoTracking()
@@ -151,7 +170,7 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             })
             .ToListAsync();
 
-        return new AgentDashboardDto
+        var result = new AgentDashboardDto
         {
             AgentId = agent.Id,
             MyProperties = statusNames.Count,
@@ -161,10 +180,17 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             MyRentedProperties = statusNames.Count(n => n == "Rented"),
             RecentMyProperties = recentProperties
         };
+
+        await _cache.SetAsync(key, result, CacheTtl);
+        return result;
     }
 
     private async Task<UserDashboardDto> GetUserDashboardAsync()
     {
+        const string key = DashboardCacheKeys.UserMarketplace;
+        var cached = await _cache.GetAsync<UserDashboardDto>(key);
+        if (cached is not null) return cached;
+
         var availableCount = await _dbContext.Properties
             .AsNoTracking()
             .Include(p => p.PropertyStatus)
@@ -194,11 +220,14 @@ public class DashboardService(AppDbContext dbContext) : IDashboardService
             .Select(g => g.Key)
             .ToListAsync();
 
-        return new UserDashboardDto
+        var result = new UserDashboardDto
         {
             AvailableProperties = availableCount,
             LatestProperties = latestProperties,
             PopularCities = popularCities
         };
+
+        await _cache.SetAsync(key, result, CacheTtl);
+        return result;
     }
 }
