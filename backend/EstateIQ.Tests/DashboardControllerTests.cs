@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -5,6 +6,7 @@ using System.Text.Json;
 using EstateIQ.Constants;
 using EstateIQ.Data;
 using EstateIQ.DTOs.Dashboard;
+using EstateIQ.Interfaces;
 using EstateIQ.Models;
 using EstateIQ.Services.Auth;
 using Microsoft.AspNetCore.Hosting;
@@ -216,6 +218,89 @@ public class DashboardControllerTests
         Assert.True(json.TryGetProperty("totalProperties", out _));
     }
 
+    [Fact]
+    public async Task GetMyDashboard_AdminRole_PopulatesCacheOnMiss()
+    {
+        var capturingCache = new CapturingDashboardCacheService();
+        await using var factory = new EstateIqWebApplicationFactory(capturingCache);
+        var (_, companyId, agentId) = await factory.SeedCompanyWithAgentAsync();
+        await factory.SeedPropertiesAsync(agentId, companyId, forSaleCount: 1, soldCount: 0);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Guid.NewGuid(), [Roles.Admin]);
+
+        await client.GetAsync("/api/dashboard/me");
+
+        Assert.True(capturingCache.Store.ContainsKey(DashboardCacheKeys.AdminGlobal));
+    }
+
+    [Fact]
+    public async Task GetMyDashboard_AdminRole_ReturnsCachedDataOnHit()
+    {
+        var cachedDto = new AdminDashboardDto
+        {
+            TotalProperties = 999,
+            ForSaleProperties = 500,
+            ForRentProperties = 499,
+            SoldProperties = 0,
+            RentedProperties = 0,
+            TotalUsers = 42,
+            TotalCompanies = 7,
+            TotalAgents = 3,
+            RecentProperties = []
+        };
+        var primeCache = new CapturingDashboardCacheService();
+        await primeCache.SetAsync(DashboardCacheKeys.AdminGlobal, cachedDto);
+
+        await using var factory = new EstateIqWebApplicationFactory(primeCache);
+        await factory.SeedCompanyWithAgentAsync();
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Guid.NewGuid(), [Roles.Admin]);
+
+        var response = await client.GetAsync("/api/dashboard/me");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(999, json.GetProperty("totalProperties").GetInt32());
+        Assert.Equal(42, json.GetProperty("totalUsers").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetMyDashboard_WhenRedisUnavailable_FallsBackToSql()
+    {
+        // Use the real DashboardCacheService but with a throwing IRedisCacheService so we
+        // exercise the exception-handling path inside DashboardCacheService itself.
+        await using var factory = new EstateIqWebApplicationFactory(throwingRedis: true);
+        var (_, companyId, agentId) = await factory.SeedCompanyWithAgentAsync();
+        await factory.SeedPropertiesAsync(agentId, companyId, forSaleCount: 2, soldCount: 1);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, Guid.NewGuid(), [Roles.Admin]);
+
+        var response = await client.GetAsync("/api/dashboard/me");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(3, json.GetProperty("totalProperties").GetInt32());
+    }
+
+    [Fact]
+    public async Task GetMyDashboard_CompanyAdminRole_UsesSeparateCacheKeyPerCompany()
+    {
+        var capturingCache = new CapturingDashboardCacheService();
+        await using var factory = new EstateIqWebApplicationFactory(capturingCache);
+        var (_, company1Id, agentId) = await factory.SeedCompanyWithAgentAsync();
+        var companyAdminUserId = Guid.NewGuid();
+        await factory.SeedCompanyAdminUserAsync(companyAdminUserId, company1Id);
+        await factory.SeedPropertiesAsync(agentId, company1Id, forSaleCount: 1, soldCount: 0);
+        using var client = factory.CreateClient();
+        AddBearerToken(client, companyAdminUserId, [Roles.CompanyAdmin]);
+
+        await client.GetAsync("/api/dashboard/me");
+
+        var expectedKey = DashboardCacheKeys.CompanyAdmin(company1Id);
+        Assert.True(capturingCache.Store.ContainsKey(expectedKey));
+        Assert.False(capturingCache.Store.ContainsKey(DashboardCacheKeys.AdminGlobal));
+    }
+
     private static void AddBearerToken(HttpClient client, Guid userId, string[] roles)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
@@ -233,7 +318,9 @@ public class DashboardControllerTests
             []);
     }
 
-    private sealed class EstateIqWebApplicationFactory : WebApplicationFactory<Program>
+    private sealed class EstateIqWebApplicationFactory(
+        IDashboardCacheService? cacheOverride = null,
+        bool throwingRedis = false) : WebApplicationFactory<Program>
     {
         private readonly string _databaseName = Guid.NewGuid().ToString();
 
@@ -263,6 +350,20 @@ public class DashboardControllerTests
 
                 services.AddDbContext<AppDbContext>(options =>
                     options.UseInMemoryDatabase(_databaseName));
+
+                if (throwingRedis)
+                {
+                    // Keep real DashboardCacheService — replace only the underlying IRedisCacheService
+                    // so we exercise the exception-handling path inside DashboardCacheService.
+                    services.RemoveAll(typeof(IRedisCacheService));
+                    services.AddSingleton<IRedisCacheService, ThrowingRedisCacheService>();
+                }
+                else
+                {
+                    services.RemoveAll(typeof(IDashboardCacheService));
+                    var cache = cacheOverride ?? new NullDashboardCacheService();
+                    services.AddSingleton(cache);
+                }
             });
         }
 
@@ -523,5 +624,39 @@ public class DashboardControllerTests
 
             await dbContext.SaveChangesAsync();
         }
+    }
+
+    // Always returns a cache miss; discards all writes. Used by the default test factory.
+    private sealed class NullDashboardCacheService : IDashboardCacheService
+    {
+        public Task<T?> GetAsync<T>(string key) where T : class => Task.FromResult<T?>(null);
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) where T : class => Task.CompletedTask;
+    }
+
+    // In-memory cache backed by a dictionary. Supports pre-populating for cache-hit tests.
+    private sealed class CapturingDashboardCacheService : IDashboardCacheService
+    {
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+        public ConcurrentDictionary<string, string> Store { get; } = new();
+
+        public Task<T?> GetAsync<T>(string key) where T : class
+        {
+            if (!Store.TryGetValue(key, out var json)) return Task.FromResult<T?>(null);
+            return Task.FromResult(JsonSerializer.Deserialize<T>(json, JsonOptions));
+        }
+
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) where T : class
+        {
+            Store[key] = JsonSerializer.Serialize(value, JsonOptions);
+            return Task.CompletedTask;
+        }
+    }
+
+    // Throws on every call. Used to verify DashboardCacheService catches exceptions
+    // and DashboardService falls back to SQL when the underlying Redis is unavailable.
+    private sealed class ThrowingRedisCacheService : IRedisCacheService
+    {
+        public Task<string?> GetStringAsync(string key) => throw new InvalidOperationException("Redis unavailable");
+        public Task SetStringAsync(string key, string value, TimeSpan? expiry = null) => throw new InvalidOperationException("Redis unavailable");
     }
 }
