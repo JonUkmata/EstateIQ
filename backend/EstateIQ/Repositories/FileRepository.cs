@@ -26,6 +26,25 @@ public class FileRepository(AppDbContext dbContext) : IFileRepository
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyDictionary<Guid, FileRecord>> GetFirstByEntitiesAsync(string entity, IReadOnlyCollection<Guid> entityIds)
+    {
+        if (entityIds.Count == 0)
+        {
+            return new Dictionary<Guid, FileRecord>();
+        }
+
+        var files = await _dbContext.Files
+            .AsNoTracking()
+            .Where(file => file.Entity == entity && entityIds.Contains(file.EntityId))
+            .OrderBy(file => file.CreatedAt)
+            .ThenBy(file => file.Id)
+            .ToListAsync();
+
+        return files
+            .GroupBy(file => file.EntityId)
+            .ToDictionary(group => group.Key, group => group.First());
+    }
+
     public async Task<FileRecord?> GetByEntityAndIdAsync(string entity, Guid entityId, Guid id)
     {
         return await _dbContext.Files

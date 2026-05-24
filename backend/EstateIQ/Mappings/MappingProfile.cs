@@ -12,7 +12,8 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<Property, PropertyDto>()
-            .ForMember(destination => destination.Images, options => options.Ignore());
+            .ForMember(destination => destination.Images, options => options.Ignore())
+            .ForMember(destination => destination.CoverImageUrl, options => options.Ignore());
         CreateMap<CreatePropertyDto, Property>()
             .ForMember(destination => destination.Id, options => options.Ignore())
             .ForMember(destination => destination.CreatedAt, options => options.Ignore())

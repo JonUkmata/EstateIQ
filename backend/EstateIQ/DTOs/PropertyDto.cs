@@ -46,4 +46,6 @@ public class PropertyDto
     public DateTime? UpdatedAt { get; set; }
 
     public IReadOnlyList<FileResponseDto> Images { get; set; } = [];
+
+    public string? CoverImageUrl { get; set; }
 }
