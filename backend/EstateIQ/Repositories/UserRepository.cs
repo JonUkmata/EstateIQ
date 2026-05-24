@@ -9,12 +9,18 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
 {
     private readonly AppDbContext _dbContext = dbContext;
 
-    public async Task<(IEnumerable<User> Items, int TotalCount)> GetPagedAsync(string? search, int page, int pageSize)
+    public async Task<(IEnumerable<User> Items, int TotalCount)> GetPagedAsync(
+        string? search,
+        string? role,
+        int page,
+        int pageSize)
     {
         var query = _dbContext.Users
             .AsNoTracking()
             .Include(user => user.UserRoles)
                 .ThenInclude(userRole => userRole.Role)
+            .Include(user => user.CompanyUsers)
+                .ThenInclude(companyUser => companyUser.Company)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -24,6 +30,12 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
                 user.FirstName.Contains(normalizedSearch) ||
                 user.LastName.Contains(normalizedSearch) ||
                 user.Email.Contains(normalizedSearch));
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var normalizedRole = role.Trim();
+            query = query.Where(user => user.UserRoles.Any(userRole => userRole.Role.Name == normalizedRole));
         }
 
         var totalCount = await query.CountAsync();

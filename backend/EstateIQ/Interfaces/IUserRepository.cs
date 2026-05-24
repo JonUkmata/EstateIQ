@@ -4,7 +4,7 @@ namespace EstateIQ.Interfaces;
 
 public interface IUserRepository
 {
-    Task<(IEnumerable<User> Items, int TotalCount)> GetPagedAsync(string? search, int page, int pageSize);
+    Task<(IEnumerable<User> Items, int TotalCount)> GetPagedAsync(string? search, string? role, int page, int pageSize);
 
     Task<bool> EmailExistsAsync(string email);
 

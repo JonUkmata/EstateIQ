@@ -14,5 +14,18 @@ public class UserListItemDto
 
     public bool IsEmailConfirmed { get; set; }
 
+    public DateTime CreatedAt { get; set; }
+
+    public IReadOnlyCollection<UserCompanyListItemDto> Companies { get; set; } = [];
+
     public IReadOnlyCollection<string> Roles { get; set; } = [];
+}
+
+public class UserCompanyListItemDto
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string RelationshipType { get; set; } = string.Empty;
 }

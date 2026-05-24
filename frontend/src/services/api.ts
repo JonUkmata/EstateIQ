@@ -245,6 +245,22 @@ export type CreateAgentResponse = {
   companyId: number
 }
 
+export type AdminUser = {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  isActive: boolean
+  isEmailConfirmed: boolean
+  createdAt: string
+  roles: string[]
+  companies: {
+    id: number
+    name: string
+    relationshipType: string
+  }[]
+}
+
 export type CreatePropertyPayload = {
   title: string
   description?: string | null
@@ -283,6 +299,13 @@ type PropertyQuery = {
   propertyStatusId?: string | number
   minPrice?: string | number
   maxPrice?: string | number
+  page?: string | number
+  pageSize?: string | number
+}
+
+type UserQuery = {
+  search?: string
+  role?: string
   page?: string | number
   pageSize?: string | number
 }
@@ -383,6 +406,35 @@ export async function createAgent(payload: CreateAgentPayload) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function getUsers(signal?: AbortSignal, query?: UserQuery) {
+  const parameters = new URLSearchParams()
+  const search = query?.search?.trim()
+  const role = query?.role?.trim()
+  const page = query?.page?.toString().trim()
+  const pageSize = query?.pageSize?.toString().trim()
+
+  if (search) {
+    parameters.set('search', search)
+  }
+
+  if (role) {
+    parameters.set('role', role)
+  }
+
+  if (page) {
+    parameters.set('page', page)
+  }
+
+  if (pageSize) {
+    parameters.set('pageSize', pageSize)
+  }
+
+  const queryString = parameters.toString()
+  return fetchJson<PagedResult<AdminUser>>(`/api/users${queryString ? `?${queryString}` : ''}`, {
+    signal,
   })
 }
 

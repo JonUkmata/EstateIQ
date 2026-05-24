@@ -26,9 +26,13 @@ public class UserService(
         var normalizedSearch = string.IsNullOrWhiteSpace(queryParameters.Search)
             ? null
             : queryParameters.Search.Trim();
+        var normalizedRole = string.IsNullOrWhiteSpace(queryParameters.Role)
+            ? null
+            : queryParameters.Role.Trim();
 
         var (items, totalCount) = await _userRepository.GetPagedAsync(
             normalizedSearch,
+            normalizedRole,
             queryParameters.Page,
             queryParameters.PageSize);
 
@@ -42,6 +46,17 @@ public class UserService(
                 Email = user.Email,
                 IsActive = user.IsActive,
                 IsEmailConfirmed = user.IsEmailConfirmed,
+                CreatedAt = user.CreatedAt,
+                Companies = user.CompanyUsers
+                    .Where(companyUser => companyUser.Company is not null)
+                    .OrderBy(companyUser => companyUser.Company.Name)
+                    .Select(companyUser => new UserCompanyListItemDto
+                    {
+                        Id = companyUser.CompanyId,
+                        Name = companyUser.Company.Name,
+                        RelationshipType = companyUser.RelationshipType
+                    })
+                    .ToArray(),
                 Roles = user.UserRoles
                     .Select(userRole => userRole.Role.Name)
                     .Distinct(StringComparer.Ordinal)
