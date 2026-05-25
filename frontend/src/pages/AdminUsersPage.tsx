@@ -60,6 +60,8 @@ export default function AdminUsersPage() {
   const [pendingDeactivate, setPendingDeactivate] = useState<AdminUser | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
+  useEffect(() => { document.title = 'Manage Users | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
 

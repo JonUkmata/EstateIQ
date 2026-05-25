@@ -45,6 +45,7 @@ export default function PropertyDetailsPage() {
         setErrorMessage('')
         const result = await getPropertyById(parsedId, controller.signal)
         setProperty(result)
+        document.title = `${result.title} | EstateIQ`
         setImages(result.images ?? [])
         setLoadState('success')
 

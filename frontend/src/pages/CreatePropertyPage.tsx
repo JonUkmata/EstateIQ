@@ -70,6 +70,8 @@ export default function CreatePropertyPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
 
+  useEffect(() => { document.title = 'New Property | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
 

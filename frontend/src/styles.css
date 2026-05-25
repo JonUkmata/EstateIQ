@@ -1128,6 +1128,16 @@ a {
   font-weight: 700;
 }
 
+.table-title-link {
+  color: #1f4f39;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.table-title-link:hover {
+  text-decoration: underline;
+}
+
 .details-grid {
   display: grid;
   gap: 1rem;

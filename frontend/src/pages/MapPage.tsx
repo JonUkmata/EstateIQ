@@ -79,6 +79,8 @@ export default function MapPage() {
   const markerRefs = useRef<Record<number, L.Marker | null>>({})
   const debouncedFilters = useDebouncedValue(filters, 350)
 
+  useEffect(() => { document.title = 'Map Search | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
 
