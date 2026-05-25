@@ -1,87 +1,75 @@
 # ML Prediction API Contract
 
-This document defines the initial API contract for the ML price prediction feature in EstateIQ.
+This document is kept for historical context. The active implementation is documented in:
 
-## Goal
+- [ML price prediction flow](ml-price-prediction-flow.md)
 
-Expose a single endpoint that accepts basic property inputs and returns a predicted property price together with a confidence score.
+## Current EstateIQ Endpoint
 
-## Endpoint
+The frontend calls the EstateIQ backend, not the ML service directly:
 
-- Method: `POST`
-- Path: `/api/ml/predict-price`
-- Content-Type: `application/json`
+```http
+POST /api/properties/generate-price
+```
 
-## Request Contract
+Access:
 
-All fields are required in the initial version of this contract.
+- Requires `CreateProperty` permission.
 
-### Request Body
+The backend validates the agent-facing form data, converts area units to square feet, fills defaults, derives technical ML fields, calls the FastAPI service, and returns a suggested listing price.
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `bedrooms` | `int` | Yes | Number of bedrooms |
-| `bathrooms` | `int` | Yes | Number of bathrooms |
-| `sqft` | `float` | Yes | Property size in square feet |
-| `zipcode` | `string` | Yes | Property ZIP code |
+## Current FastAPI ML Endpoint
 
-### Example Request
+The backend calls:
+
+```http
+POST http://127.0.0.1:8000/predict
+```
+
+Request shape:
 
 ```json
 {
-  "bedrooms": 3,
-  "bathrooms": 2,
-  "sqft": 1450.5,
-  "zipcode": "10001"
+  "bedrooms": 4,
+  "bathrooms": 3,
+  "sqft_living": 1960,
+  "sqft_lot": 5000,
+  "floors": 1,
+  "waterfront": 0,
+  "view": 0,
+  "condition": 5,
+  "grade": 7,
+  "sqft_above": 1050,
+  "sqft_basement": 910,
+  "yr_built": 1965,
+  "yr_renovated": 0,
+  "zipcode": 98136,
+  "lat": 47.520801,
+  "long": -122.393001,
+  "sqft_living15": 1360,
+  "sqft_lot15": 5000,
+  "sale_year": 2014,
+  "sale_month": 11
 }
 ```
 
-## Response Contract
-
-### Success Response
-
-- Status: `200 OK`
-
-### Response Body
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `predictedPrice` | `float` | Predicted property price |
-| `confidence` | `float` | Confidence score from `0.0` to `1.0` |
-
-### Example Response
+Response shape:
 
 ```json
 {
-  "predictedPrice": 327500.0,
-  "confidence": 0.87
+  "predicted_price": 464627.78,
+  "predicted_price_formatted": "$464,628"
 }
 ```
 
-## Validation Rules
+## Historical Draft
 
-- `bedrooms` must be an integer
-- `bathrooms` must be an integer
-- `sqft` must be a numeric value
-- `zipcode` must be a string
-- `confidence` must always be returned in the range `0.0` to `1.0`
+An earlier draft proposed:
 
-## Error Handling
+```http
+POST /api/ml/predict-price
+```
 
-For the first contract draft, invalid or missing request data should return:
+with a smaller request body containing `bedrooms`, `bathrooms`, `sqft`, and `zipcode`, and a response containing `predictedPrice` plus `confidence`.
 
-- Status: `400 Bad Request`
-
-Example cases:
-
-- Missing required field
-- Wrong data type in request body
-- Empty JSON body
-
-## Out of Scope
-
-This document only defines the API contract.
-
-- No ML model implementation
-- No prediction algorithm definition
-- No persistence or analytics behavior
+That draft is no longer the active implementation. The project now uses the backend-mediated property endpoint and the King County style ML request shape described above.

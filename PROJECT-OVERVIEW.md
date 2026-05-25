@@ -4,15 +4,15 @@
 
 **Project Name:** EstateIQ  
 **Version:** 1.0.0  
-**Status:** Sprint 5 completed, ready for merge to main  
+**Status:** Sprint 5 completed plus ML price generation integration  
 **Start Date:** 2026-04-14  
 **Last Updated:** 2026-05-24  
 
 ## Project Description
 
-EstateIQ is a full-stack real estate management system for managing property listings, companies, agents, users, roles, permissions, property images, property types, property statuses, and map-ready property location data.
+EstateIQ is a full-stack real estate management system for managing property listings, companies, agents, users, roles, permissions, property images, property types, property statuses, map-ready property location data, and ML-assisted listing price suggestions.
 
-The project now includes the full Sprint 5 role-based UI and Redis dashboard caching: role-aware navigation, a marketplace card grid with map search, dedicated management pages for Admin and CompanyAdmin, a role-based dashboard with real statistics, Redis caching of dashboard responses per role and scope, and immediate cache invalidation on data changes. Sprint 4 delivered the security layer: public registration, email verification, login/logout, JWT access tokens, refresh tokens, role/permission based authorization, protected property management APIs, user management endpoints, and property image upload/gallery support. Sprint 3 delivered property discovery with paginated and filtered listings, create/edit/delete flows, property details, and map integration. The backend follows a layered architecture with controllers, services, repositories, DTOs, AutoMapper profiles, EF Core models, seeders, and automated tests. The frontend is a React/Vite application that consumes the backend API through a local Vite `/api` proxy.
+The project now includes the full Sprint 5 role-based UI and Redis dashboard caching: role-aware navigation, a marketplace card grid with map search, dedicated management pages for Admin and CompanyAdmin, a role-based dashboard with real statistics, Redis caching of dashboard responses per role and scope, and immediate cache invalidation on data changes. The New Property form also includes a backend-mediated ML price generation flow: agents fill normal listing fields, the backend maps those fields to the FastAPI ML contract, and the UI displays the generated price as an editable suggestion. Sprint 4 delivered the security layer: public registration, email verification, login/logout, JWT access tokens, refresh tokens, role/permission based authorization, protected property management APIs, user management endpoints, and property image upload/gallery support. Sprint 3 delivered property discovery with paginated and filtered listings, create/edit/delete flows, property details, and map integration. The backend follows a layered architecture with controllers, services, repositories, DTOs, AutoMapper profiles, EF Core models, seeders, and automated tests. The frontend is a React/Vite application that consumes the backend API through a local Vite `/api` proxy.
 
 ## Technology Stack
 
@@ -29,6 +29,7 @@ The project now includes the full Sprint 5 role-based UI and Redis dashboard cac
 - **Architecture:** Controller + Service + Repository pattern
 - **Validation:** Data annotations on DTOs/models plus service-level business validation
 - **Logging:** ASP.NET Core console logging
+- **ML Integration:** Backend `HttpClient` call to local FastAPI service at `http://127.0.0.1:8000/predict`
 
 ### Backend Packages
 
@@ -189,6 +190,7 @@ VITE_API_BASE_URL=""
 - Role-based dashboard endpoint: `GET /api/dashboard/me`
 - User management: list, create CompanyAdmin, create Agent, activate/deactivate
 - Property management: paginated list, details, create, update, delete
+- Property price generation: `POST /api/properties/generate-price` maps form data to the ML prediction API
 - Property image management: upload, list, delete
 - Company agents endpoint: `GET /api/agents/my-company` for CompanyAdmin scope
 - Lookup endpoints: companies, agents, property types, property statuses
@@ -207,6 +209,8 @@ VITE_API_BASE_URL=""
 - Marketplace card grid at `/properties` with search, city, type, status, and price filters
 - Property details page at `/properties/:id` with image gallery and upload UI
 - Property create page at `/properties/new` (CreateProperty permission required)
+- Generate Price card in the create-property form with loading, error, success, warning, and Apply to Price states
+- Map picker and manual lat/long reverse geocoding for address, city, and zipcode autofill
 - Property edit page at `/properties/:id/edit` (EditProperty permission required)
 - Full map search at `/map` with Leaflet markers, sidebar, and filter panel
 - "View on Map" / "View as List" links that carry current filters between views
@@ -225,8 +229,6 @@ VITE_API_BASE_URL=""
 - Cloud file storage for property images
 - Image ordering and cover image selection
 - Frontend automated test suite
-- ML price prediction API integration
-- Geocoding or map-based coordinate picker
 - Production deployment configuration
 
 ## Getting Started

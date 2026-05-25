@@ -13,6 +13,7 @@ Start here when onboarding a new developer or AI assistant:
 
 - [PROJECT-OVERVIEW.md](PROJECT-OVERVIEW.md) - static project overview, stack, architecture, database schema, setup, URLs, and feature status.
 - [docs/README.md](docs/README.md) - docs index, supporting documents, and sprint planning notes.
+- [docs/ml-price-prediction-flow.md](docs/ml-price-prediction-flow.md) - current ML price generation flow, backend mapping, defaults, validation, and local testing.
 - [docs/sprints/sprint-5.md](docs/sprints/sprint-5.md) - Sprint 5 delivered tickets, key files, and verification results.
 
 ## Required Tools
@@ -238,6 +239,7 @@ Expected frontend URL:
 | GET | `/api/properties` | Public | Paginated and filtered property list |
 | GET | `/api/properties/{id}` | Public | Property details |
 | POST | `/api/properties` | CreateProperty | Create a property |
+| POST | `/api/properties/generate-price` | CreateProperty | Generate an ML suggested listing price |
 | PUT | `/api/properties/{id}` | EditProperty | Update a property |
 | DELETE | `/api/properties/{id}` | DeleteProperty | Delete a property |
 | GET | `/api/properties/{id}/images` | Public | List property images |
