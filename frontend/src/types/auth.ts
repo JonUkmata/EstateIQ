@@ -41,6 +41,11 @@ export type LoginResponse = {
   user: AuthUser
 }
 
+export type RefreshTokenResponse = {
+  accessToken: string
+  expiresAt: string
+}
+
 export type LogoutResponse = {
   message: string
 }

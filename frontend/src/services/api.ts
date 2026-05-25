@@ -2,6 +2,7 @@ import type {
   LoginRequest,
   LoginResponse,
   LogoutResponse,
+  RefreshTokenResponse,
   RegisterRequest,
   RegisterResponse,
   VerifyEmailRequest,
@@ -58,6 +59,14 @@ async function parseErrorDetails(response: Response) {
 }
 
 function buildHttpErrorMessage(endpoint: string, response: Response, details?: string) {
+  if (response.status === 401) {
+    return 'Your session has expired. Please sign in again and retry.'
+  }
+
+  if (response.status === 403) {
+    return 'You do not have permission to perform this action.'
+  }
+
   if (response.status === 404) {
     return details || `We could not find the requested resource at ${endpoint}.`
   }
@@ -293,6 +302,39 @@ export type CreatePropertyPayload = {
   longitude?: number | null
 }
 
+export type GeneratePropertyPricePayload = {
+  livingArea: number
+  livingAreaUnit: 'm2' | 'sqft'
+  bedrooms: number
+  bathrooms: number
+  floors: number
+  yearBuilt: number
+  latitude: number
+  longitude: number
+  zipcode: number
+  lotArea?: number | null
+  lotAreaUnit?: 'm2' | 'sqft' | null
+  condition?: number | null
+  grade?: number | null
+  hasBasement?: boolean | null
+  basementArea?: number | null
+  basementAreaUnit?: 'm2' | 'sqft' | null
+  waterfront?: boolean | null
+  viewQuality?: number | null
+  renovated?: boolean | null
+  yearRenovated?: number | null
+  nearbyLivingArea?: number | null
+  nearbyLivingAreaUnit?: 'm2' | 'sqft' | null
+  nearbyLotArea?: number | null
+  nearbyLotAreaUnit?: 'm2' | 'sqft' | null
+}
+
+export type GeneratePropertyPriceResponse = {
+  suggestedPrice: number
+  formattedPrice: string
+  mlWarnings: string[]
+}
+
 export type UpdatePropertyPayload = CreatePropertyPayload & {
   id: number
 }
@@ -471,6 +513,16 @@ export async function createProperty(payload: CreatePropertyPayload) {
   })
 }
 
+export async function generatePropertyPrice(payload: GeneratePropertyPricePayload) {
+  return fetchJson<GeneratePropertyPriceResponse>('/api/properties/generate-price', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function deleteProperty(id: number) {
   await fetchText(`/api/properties/${id}`, {
     method: 'DELETE',
@@ -604,6 +656,16 @@ export async function loginUser(payload: LoginRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function refreshAccessToken(refreshToken?: string) {
+  return fetchJson<RefreshTokenResponse>('/api/auth/refresh', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken: refreshToken ?? null }),
   })
 }
 

@@ -17,10 +17,12 @@ namespace EstateIQ.Controllers;
 [Route("api/[controller]")]
 public class PropertiesController(
     IPropertyService propertyService,
+    IPropertyPricePredictionService propertyPricePredictionService,
     IPropertyImageService propertyImageService,
     ILogger<PropertiesController> logger) : ControllerBase
 {
     private readonly IPropertyService _propertyService = propertyService;
+    private readonly IPropertyPricePredictionService _propertyPricePredictionService = propertyPricePredictionService;
     private readonly IPropertyImageService _propertyImageService = propertyImageService;
     private readonly ILogger<PropertiesController> _logger = logger;
 
@@ -111,6 +113,38 @@ public class PropertiesController(
         {
             _logger.LogError(exception, "Error creating property.");
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the property.");
+        }
+    }
+
+    /// <summary>
+    /// Generates a suggested listing price from current form details.
+    /// </summary>
+    /// <param name="dto">The agent-facing price generation payload.</param>
+    /// <param name="cancellationToken">The request cancellation token.</param>
+    /// <returns>A suggested price and model-awareness warnings.</returns>
+    [HttpPost("generate-price")]
+    [Authorize(Policy = Permissions.CreateProperty)]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(GeneratePropertyPriceResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<GeneratePropertyPriceResponseDto>> GeneratePrice(
+        [FromBody] GeneratePropertyPriceRequestDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _propertyPricePredictionService.GenerateAsync(dto, cancellationToken);
+            return Ok(result);
+        }
+        catch (ValidationException exception)
+        {
+            return BadRequest(exception.Errors);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogWarning(exception, "Price generation failed.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, exception.Message);
         }
     }
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { loginUser, logoutUser, setApiAccessToken } from '../services/api'
+import { loginUser, logoutUser, refreshAccessToken, setApiAccessToken } from '../services/api'
 import type { AuthSession, AuthUser, LoginRequest } from '../types/auth'
 
 type AuthContextValue = {
@@ -15,6 +15,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 const storageKey = 'estateiq.auth.session'
+const refreshSkewMs = 60_000
 
 function readStoredSession() {
   try {
@@ -50,6 +51,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.localStorage.removeItem(storageKey)
     }
   }, [session])
+
+  useEffect(() => {
+    if (!session?.refreshToken || !session.expiresAt) {
+      return
+    }
+
+    let cancelled = false
+    const expiresAtMs = new Date(session.expiresAt).getTime()
+    const refreshDelayMs = Math.max(expiresAtMs - Date.now() - refreshSkewMs, 0)
+
+    const timeoutId = window.setTimeout(() => {
+      refreshAccessToken(session.refreshToken)
+        .then((response) => {
+          if (cancelled) {
+            return
+          }
+
+          setSession((current) => current
+            ? {
+                ...current,
+                accessToken: response.accessToken,
+                expiresAt: response.expiresAt,
+              }
+            : current)
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSession(null)
+          }
+        })
+    }, refreshDelayMs)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [session?.accessToken, session?.expiresAt, session?.refreshToken])
 
   const value = useMemo<AuthContextValue>(
     () => ({
