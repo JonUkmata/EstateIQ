@@ -75,10 +75,6 @@ function buildHttpErrorMessage(endpoint: string, response: Response, details?: s
 
 function buildNetworkErrorMessage(endpoint: string, error: unknown) {
   if (error instanceof Error) {
-    if (error.name === 'AbortError') {
-      return error.message
-    }
-
     return `Could not reach ${endpoint}. ${error.message}`
   }
 
@@ -102,6 +98,7 @@ async function fetchJson<T>(path: string, options: RequestInit = {}) {
       headers,
     })
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error
     throw new Error(buildNetworkErrorMessage(endpoint, error))
   }
 
@@ -130,6 +127,7 @@ async function fetchText(path: string, options: RequestInit = {}) {
       headers,
     })
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error
     throw new Error(buildNetworkErrorMessage(endpoint, error))
   }
 
