@@ -21,6 +21,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => { document.title = 'Dashboard | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
 
@@ -30,7 +32,7 @@ export default function DashboardPage() {
         setDashboard(data)
         setLoading(false)
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
+        if (err instanceof DOMException && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : 'Failed to load dashboard.')
         setLoading(false)
       }
@@ -226,7 +228,7 @@ function RecentPropertiesPanel({
               {properties.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <Link className="table-action-link" style={{ background: 'transparent', border: 'none', padding: 0, fontWeight: 700, color: '#1f4f39' }} to={`/properties/${p.id}`}>
+                    <Link className="table-title-link" to={`/properties/${p.id}`}>
                       {p.title}
                     </Link>
                   </td>
