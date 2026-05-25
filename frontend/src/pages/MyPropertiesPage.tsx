@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import PagePlaceholder from '../components/PagePlaceholder'
 
 export default function MyPropertiesPage() {
+  useEffect(() => { document.title = 'My Properties | EstateIQ' }, [])
+
   return (
     <PagePlaceholder
       badge="Agent"
