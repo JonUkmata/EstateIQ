@@ -72,6 +72,8 @@ export default function PropertiesPage() {
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 350)
   const debouncedFilters = useDebouncedValue(filters, 350)
 
+  useEffect(() => { document.title = 'Properties | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
 
