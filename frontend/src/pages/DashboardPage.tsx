@@ -28,11 +28,10 @@ export default function DashboardPage() {
       try {
         const data = await getMyDashboard(controller.signal)
         setDashboard(data)
+        setLoading(false)
       } catch (err) {
-        if (err instanceof Error && err.name !== 'AbortError') {
-          setError(err.message)
-        }
-      } finally {
+        if (err instanceof Error && err.name === 'AbortError') return
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard.')
         setLoading(false)
       }
     }
