@@ -49,6 +49,8 @@ export default function CompanyAgentsPage() {
     }
   }
 
+  useEffect(() => { document.title = 'Company Agents | EstateIQ' }, [])
+
   useEffect(() => {
     const controller = new AbortController()
     void loadAgents(controller.signal)
