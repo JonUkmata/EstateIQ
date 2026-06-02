@@ -734,8 +734,8 @@ function buildPayload(form: PropertyFormState): CreatePropertyPayload {
     price: Number(form.price),
     area: convertToSquareMeters(Number(form.livingArea), form.livingAreaUnit),
     bedrooms: toOptionalNumber(form.bedrooms),
-    bathrooms: toOptionalRoundedNumber(form.bathrooms),
-    floors: toOptionalRoundedNumber(form.floors),
+    bathrooms: toOptionalNumber(form.bathrooms),
+    floors: toOptionalNumber(form.floors),
     yearBuilt: toOptionalNumber(form.yearBuilt),
     propertyTypeId: Number(form.propertyTypeId),
     propertyStatusId: Number(form.propertyStatusId),
@@ -743,6 +743,22 @@ function buildPayload(form: PropertyFormState): CreatePropertyPayload {
     agentId: Number(form.agentId),
     address: form.address.trim(),
     city: form.city.trim(),
+    zipcode: toOptionalNumber(form.zipcode),
+    lotArea: toOptionalNumber(form.lotArea),
+    lotAreaUnit: form.lotArea ? form.lotAreaUnit : null,
+    condition: toOptionalNumber(form.condition),
+    grade: toOptionalNumber(form.grade),
+    hasBasement: form.hasBasement,
+    basementArea: form.hasBasement ? toOptionalNumber(form.basementArea) : null,
+    basementAreaUnit: form.hasBasement && form.basementArea ? form.basementAreaUnit : null,
+    waterfront: form.waterfront,
+    viewQuality: toOptionalNumber(form.viewQuality),
+    renovated: form.renovated,
+    yearRenovated: form.renovated ? toOptionalNumber(form.yearRenovated) : null,
+    nearbyLivingArea: toOptionalNumber(form.nearbyLivingArea),
+    nearbyLivingAreaUnit: form.nearbyLivingArea ? form.nearbyLivingAreaUnit : null,
+    nearbyLotArea: toOptionalNumber(form.nearbyLotArea),
+    nearbyLotAreaUnit: form.nearbyLotArea ? form.nearbyLotAreaUnit : null,
     latitude: toOptionalNumber(form.latitude),
     longitude: toOptionalNumber(form.longitude),
   }
@@ -800,10 +816,6 @@ function getPickerPosition(form: PropertyFormState): [number, number] | null {
 
 function toOptionalNumber(value: string) {
   return value ? Number(value) : null
-}
-
-function toOptionalRoundedNumber(value: string) {
-  return value ? Math.round(Number(value)) : null
 }
 
 function convertToSquareMeters(value: number, unit: AreaUnit) {

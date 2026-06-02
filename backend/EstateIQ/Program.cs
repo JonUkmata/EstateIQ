@@ -137,6 +137,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
     var options = ConfigurationOptions.Parse(redisConnectionString);
     options.AbortOnConnectFail = false;
+    options.ConnectTimeout = 500;
+    options.SyncTimeout = 500;
+    options.AsyncTimeout = 500;
 
     return ConnectionMultiplexer.Connect(options);
 });
@@ -203,6 +206,11 @@ using (var scope = app.Services.CreateScope())
     await CompanySeeder.SeedRequiredCompaniesAsync(dbContext);
     await AgentCompanySeeder.SeedRequiredAgentsAndRelationshipsAsync(dbContext);
     await PropertySeeder.SeedRequiredPropertiesAsync(dbContext);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await DevelopmentDemoSeeder.SeedAsync(dbContext, app.Environment.ContentRootPath);
+    }
 }
 
 if (!app.Environment.IsEnvironment("Testing"))

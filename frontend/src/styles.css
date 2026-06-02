@@ -1162,7 +1162,7 @@ a {
 .property-card-grid {
   display: grid;
   gap: 1.35rem;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .property-card {

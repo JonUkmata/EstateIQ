@@ -25,9 +25,11 @@ public class Property
 
     public int? Bedrooms { get; set; }
 
-    public int? Bathrooms { get; set; }
+    [Column(TypeName = "decimal(4,1)")]
+    public decimal? Bathrooms { get; set; }
 
-    public int? Floors { get; set; }
+    [Column(TypeName = "decimal(4,1)")]
+    public decimal? Floors { get; set; }
 
     [Range(1800, int.MaxValue)]
     public int? YearBuilt { get; set; }
@@ -51,6 +53,50 @@ public class Property
     [Required]
     [StringLength(100)]
     public string City { get; set; } = string.Empty;
+
+    public int? Zipcode { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? LotArea { get; set; }
+
+    [StringLength(10)]
+    public string? LotAreaUnit { get; set; }
+
+    [Range(1, 5)]
+    public int? Condition { get; set; }
+
+    [Range(1, 13)]
+    public int? Grade { get; set; }
+
+    public bool? HasBasement { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? BasementArea { get; set; }
+
+    [StringLength(10)]
+    public string? BasementAreaUnit { get; set; }
+
+    public bool? Waterfront { get; set; }
+
+    [Range(0, 4)]
+    public int? ViewQuality { get; set; }
+
+    public bool? Renovated { get; set; }
+
+    [Range(1800, int.MaxValue)]
+    public int? YearRenovated { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? NearbyLivingArea { get; set; }
+
+    [StringLength(10)]
+    public string? NearbyLivingAreaUnit { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? NearbyLotArea { get; set; }
+
+    [StringLength(10)]
+    public string? NearbyLotAreaUnit { get; set; }
 
     [Column(TypeName = "decimal(10,8)")]
     [Range(typeof(decimal), "-90", "90")]

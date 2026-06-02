@@ -3,6 +3,7 @@ using EstateIQ.Data;
 using EstateIQ.DTOs.Dashboard;
 using EstateIQ.Extensions;
 using EstateIQ.Interfaces;
+using EstateIQ.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -34,15 +35,10 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
         var cached = await _cache.GetAsync<AdminDashboardDto>(key);
         if (cached is not null) return cached;
 
-        var statusNames = await _dbContext.Properties
-            .AsNoTracking()
-            .Include(p => p.PropertyStatus)
-            .Select(p => p.PropertyStatus.Name)
-            .ToListAsync();
+        var statusCounts = await GetStatusCountsAsync(_dbContext.Properties);
 
         var recentProperties = await _dbContext.Properties
             .AsNoTracking()
-            .Include(p => p.PropertyStatus)
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
             .Select(p => new DashboardPropertyDto
@@ -58,11 +54,11 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
 
         var result = new AdminDashboardDto
         {
-            TotalProperties = statusNames.Count,
-            ForSaleProperties = statusNames.Count(n => n == "For Sale"),
-            ForRentProperties = statusNames.Count(n => n == "For Rent"),
-            SoldProperties = statusNames.Count(n => n == "Sold"),
-            RentedProperties = statusNames.Count(n => n == "Rented"),
+            TotalProperties = statusCounts.Values.Sum(),
+            ForSaleProperties = GetStatusCount(statusCounts, "For Sale"),
+            ForRentProperties = GetStatusCount(statusCounts, "For Rent"),
+            SoldProperties = GetStatusCount(statusCounts, "Sold"),
+            RentedProperties = GetStatusCount(statusCounts, "Rented"),
             TotalUsers = await _dbContext.Users.CountAsync(),
             TotalCompanies = await _dbContext.Companies.CountAsync(c => c.IsActive),
             TotalAgents = await _dbContext.Agents.CountAsync(a => a.IsActive),
@@ -88,12 +84,7 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
         var cached = await _cache.GetAsync<CompanyAdminDashboardDto>(key);
         if (cached is not null) return cached;
 
-        var statusNames = await _dbContext.Properties
-            .AsNoTracking()
-            .Include(p => p.PropertyStatus)
-            .Where(p => p.CompanyId == companyId)
-            .Select(p => p.PropertyStatus.Name)
-            .ToListAsync();
+        var statusCounts = await GetStatusCountsAsync(_dbContext.Properties.Where(p => p.CompanyId == companyId));
 
         var agentCount = await _dbContext.AgentCompanies
             .AsNoTracking()
@@ -101,7 +92,6 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
 
         var recentProperties = await _dbContext.Properties
             .AsNoTracking()
-            .Include(p => p.PropertyStatus)
             .Where(p => p.CompanyId == companyId)
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
@@ -120,12 +110,12 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
         {
             CompanyId = companyId,
             CompanyName = companyUser.Company.Name,
-            CompanyProperties = statusNames.Count,
+            CompanyProperties = statusCounts.Values.Sum(),
             CompanyAgents = agentCount,
-            ForSaleProperties = statusNames.Count(n => n == "For Sale"),
-            ForRentProperties = statusNames.Count(n => n == "For Rent"),
-            SoldProperties = statusNames.Count(n => n == "Sold"),
-            RentedProperties = statusNames.Count(n => n == "Rented"),
+            ForSaleProperties = GetStatusCount(statusCounts, "For Sale"),
+            ForRentProperties = GetStatusCount(statusCounts, "For Rent"),
+            SoldProperties = GetStatusCount(statusCounts, "Sold"),
+            RentedProperties = GetStatusCount(statusCounts, "Rented"),
             RecentCompanyProperties = recentProperties
         };
 
@@ -146,16 +136,10 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
         var cached = await _cache.GetAsync<AgentDashboardDto>(key);
         if (cached is not null) return cached;
 
-        var statusNames = await _dbContext.Properties
-            .AsNoTracking()
-            .Include(p => p.PropertyStatus)
-            .Where(p => p.AgentId == agent.Id)
-            .Select(p => p.PropertyStatus.Name)
-            .ToListAsync();
+        var statusCounts = await GetStatusCountsAsync(_dbContext.Properties.Where(p => p.AgentId == agent.Id));
 
         var recentProperties = await _dbContext.Properties
             .AsNoTracking()
-            .Include(p => p.PropertyStatus)
             .Where(p => p.AgentId == agent.Id)
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
@@ -173,11 +157,11 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
         var result = new AgentDashboardDto
         {
             AgentId = agent.Id,
-            MyProperties = statusNames.Count,
-            MyForSaleProperties = statusNames.Count(n => n == "For Sale"),
-            MyForRentProperties = statusNames.Count(n => n == "For Rent"),
-            MySoldProperties = statusNames.Count(n => n == "Sold"),
-            MyRentedProperties = statusNames.Count(n => n == "Rented"),
+            MyProperties = statusCounts.Values.Sum(),
+            MyForSaleProperties = GetStatusCount(statusCounts, "For Sale"),
+            MyForRentProperties = GetStatusCount(statusCounts, "For Rent"),
+            MySoldProperties = GetStatusCount(statusCounts, "Sold"),
+            MyRentedProperties = GetStatusCount(statusCounts, "Rented"),
             RecentMyProperties = recentProperties
         };
 
@@ -193,12 +177,10 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
 
         var availableCount = await _dbContext.Properties
             .AsNoTracking()
-            .Include(p => p.PropertyStatus)
             .CountAsync(p => p.PropertyStatus.Name == "For Sale" || p.PropertyStatus.Name == "For Rent");
 
         var latestProperties = await _dbContext.Properties
             .AsNoTracking()
-            .Include(p => p.PropertyStatus)
             .OrderByDescending(p => p.CreatedAt)
             .Take(5)
             .Select(p => new DashboardPropertyDto
@@ -229,5 +211,19 @@ public class DashboardService(AppDbContext dbContext, IDashboardCacheService cac
 
         await _cache.SetAsync(key, result, CacheTtl);
         return result;
+    }
+
+    private static async Task<Dictionary<string, int>> GetStatusCountsAsync(IQueryable<Property> properties)
+    {
+        return await properties
+            .AsNoTracking()
+            .GroupBy(p => p.PropertyStatus.Name)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status, x => x.Count);
+    }
+
+    private static int GetStatusCount(IReadOnlyDictionary<string, int> statusCounts, string status)
+    {
+        return statusCounts.TryGetValue(status, out var count) ? count : 0;
     }
 }

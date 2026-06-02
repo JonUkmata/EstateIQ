@@ -26,10 +26,10 @@ public class CreatePropertyDto
     public int? Bedrooms { get; set; }
 
     [Range(0, 50)]
-    public int? Bathrooms { get; set; }
+    public decimal? Bathrooms { get; set; }
 
     [Range(0, 200)]
-    public int? Floors { get; set; }
+    public decimal? Floors { get; set; }
 
     [Range(1800, 2100)]
     public int? YearBuilt { get; set; }
@@ -53,6 +53,51 @@ public class CreatePropertyDto
     [Required]
     [MaxLength(100)]
     public string City { get; set; } = string.Empty;
+
+    [Range(1, 99999)]
+    public int? Zipcode { get; set; }
+
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    public decimal? LotArea { get; set; }
+
+    [MaxLength(10)]
+    public string? LotAreaUnit { get; set; }
+
+    [Range(1, 5)]
+    public int? Condition { get; set; }
+
+    [Range(1, 13)]
+    public int? Grade { get; set; }
+
+    public bool? HasBasement { get; set; }
+
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    public decimal? BasementArea { get; set; }
+
+    [MaxLength(10)]
+    public string? BasementAreaUnit { get; set; }
+
+    public bool? Waterfront { get; set; }
+
+    [Range(0, 4)]
+    public int? ViewQuality { get; set; }
+
+    public bool? Renovated { get; set; }
+
+    [Range(1800, 2100)]
+    public int? YearRenovated { get; set; }
+
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    public decimal? NearbyLivingArea { get; set; }
+
+    [MaxLength(10)]
+    public string? NearbyLivingAreaUnit { get; set; }
+
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    public decimal? NearbyLotArea { get; set; }
+
+    [MaxLength(10)]
+    public string? NearbyLotAreaUnit { get; set; }
 
     [Range(typeof(decimal), "-90", "90")]
     public decimal? Latitude { get; set; }

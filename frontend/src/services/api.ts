@@ -160,6 +160,22 @@ export type Property = {
   bathrooms?: number | null
   floors?: number | null
   yearBuilt?: number | null
+  zipcode?: number | null
+  lotArea?: number | null
+  lotAreaUnit?: 'm2' | 'sqft' | null
+  condition?: number | null
+  grade?: number | null
+  hasBasement?: boolean | null
+  basementArea?: number | null
+  basementAreaUnit?: 'm2' | 'sqft' | null
+  waterfront?: boolean | null
+  viewQuality?: number | null
+  renovated?: boolean | null
+  yearRenovated?: number | null
+  nearbyLivingArea?: number | null
+  nearbyLivingAreaUnit?: 'm2' | 'sqft' | null
+  nearbyLotArea?: number | null
+  nearbyLotAreaUnit?: 'm2' | 'sqft' | null
   latitude?: number | null
   longitude?: number | null
   coverImageUrl?: string | null
@@ -298,6 +314,22 @@ export type CreatePropertyPayload = {
   agentId: number
   address: string
   city: string
+  zipcode?: number | null
+  lotArea?: number | null
+  lotAreaUnit?: 'm2' | 'sqft' | null
+  condition?: number | null
+  grade?: number | null
+  hasBasement?: boolean | null
+  basementArea?: number | null
+  basementAreaUnit?: 'm2' | 'sqft' | null
+  waterfront?: boolean | null
+  viewQuality?: number | null
+  renovated?: boolean | null
+  yearRenovated?: number | null
+  nearbyLivingArea?: number | null
+  nearbyLivingAreaUnit?: 'm2' | 'sqft' | null
+  nearbyLotArea?: number | null
+  nearbyLotAreaUnit?: 'm2' | 'sqft' | null
   latitude?: number | null
   longitude?: number | null
 }

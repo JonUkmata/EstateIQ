@@ -508,18 +508,37 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(x => x.Description).HasColumnType("nvarchar(max)");
             entity.Property(x => x.Price).HasColumnType("decimal(18,2)");
             entity.Property(x => x.Area).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.Bathrooms).HasColumnType("decimal(4,1)");
+            entity.Property(x => x.Floors).HasColumnType("decimal(4,1)");
             entity.Property(x => x.Address)
                 .HasMaxLength(300)
                 .IsRequired();
             entity.Property(x => x.City)
                 .HasMaxLength(100)
                 .IsRequired();
+            entity.Property(x => x.LotArea).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.LotAreaUnit).HasMaxLength(10);
+            entity.Property(x => x.BasementArea).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.BasementAreaUnit).HasMaxLength(10);
+            entity.Property(x => x.NearbyLivingArea).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.NearbyLivingAreaUnit).HasMaxLength(10);
+            entity.Property(x => x.NearbyLotArea).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.NearbyLotAreaUnit).HasMaxLength(10);
             entity.Property(x => x.Latitude).HasColumnType("decimal(10,8)");
             entity.Property(x => x.Longitude).HasColumnType("decimal(11,8)");
             entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 
             entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Price", "[Price] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Area", "[Area] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Zipcode", "[Zipcode] IS NULL OR ([Zipcode] >= 1 AND [Zipcode] <= 99999)"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_LotArea", "[LotArea] IS NULL OR [LotArea] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Condition", "[Condition] IS NULL OR ([Condition] >= 1 AND [Condition] <= 5)"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Grade", "[Grade] IS NULL OR ([Grade] >= 1 AND [Grade] <= 13)"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_BasementArea", "[BasementArea] IS NULL OR [BasementArea] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_ViewQuality", "[ViewQuality] IS NULL OR ([ViewQuality] >= 0 AND [ViewQuality] <= 4)"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_YearRenovated", "[YearRenovated] IS NULL OR ([YearRenovated] >= 1800 AND [YearRenovated] <= YEAR(GETDATE()))"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_NearbyLivingArea", "[NearbyLivingArea] IS NULL OR [NearbyLivingArea] > 0"));
+            entity.ToTable(t => t.HasCheckConstraint("CK_Properties_NearbyLotArea", "[NearbyLotArea] IS NULL OR [NearbyLotArea] > 0"));
             entity.ToTable(t => t.HasCheckConstraint("CK_Properties_YearBuilt", "[YearBuilt] IS NULL OR ([YearBuilt] >= 1800 AND [YearBuilt] <= YEAR(GETDATE()))"));
             entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Latitude", "[Latitude] IS NULL OR ([Latitude] >= -90 AND [Latitude] <= 90)"));
             entity.ToTable(t => t.HasCheckConstraint("CK_Properties_Longitude", "[Longitude] IS NULL OR ([Longitude] >= -180 AND [Longitude] <= 180)"));

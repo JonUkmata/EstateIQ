@@ -571,6 +571,22 @@ public class PropertyService(
                existing.AgentId != dto.AgentId ||
                !string.Equals(existing.Address, dto.Address, StringComparison.Ordinal) ||
                !string.Equals(existing.City, dto.City, StringComparison.Ordinal) ||
+               existing.Zipcode != dto.Zipcode ||
+               existing.LotArea != dto.LotArea ||
+               !string.Equals(existing.LotAreaUnit, dto.LotAreaUnit, StringComparison.Ordinal) ||
+               existing.Condition != dto.Condition ||
+               existing.Grade != dto.Grade ||
+               existing.HasBasement != dto.HasBasement ||
+               existing.BasementArea != dto.BasementArea ||
+               !string.Equals(existing.BasementAreaUnit, dto.BasementAreaUnit, StringComparison.Ordinal) ||
+               existing.Waterfront != dto.Waterfront ||
+               existing.ViewQuality != dto.ViewQuality ||
+               existing.Renovated != dto.Renovated ||
+               existing.YearRenovated != dto.YearRenovated ||
+               existing.NearbyLivingArea != dto.NearbyLivingArea ||
+               !string.Equals(existing.NearbyLivingAreaUnit, dto.NearbyLivingAreaUnit, StringComparison.Ordinal) ||
+               existing.NearbyLotArea != dto.NearbyLotArea ||
+               !string.Equals(existing.NearbyLotAreaUnit, dto.NearbyLotAreaUnit, StringComparison.Ordinal) ||
                existing.Latitude != dto.Latitude ||
                existing.Longitude != dto.Longitude;
     }
@@ -606,6 +622,22 @@ public class PropertyService(
             AgentId = property.AgentId,
             Address = property.Address,
             City = property.City,
+            Zipcode = property.Zipcode,
+            LotArea = property.LotArea,
+            LotAreaUnit = property.LotAreaUnit,
+            Condition = property.Condition,
+            Grade = property.Grade,
+            HasBasement = property.HasBasement,
+            BasementArea = property.BasementArea,
+            BasementAreaUnit = property.BasementAreaUnit,
+            Waterfront = property.Waterfront,
+            ViewQuality = property.ViewQuality,
+            Renovated = property.Renovated,
+            YearRenovated = property.YearRenovated,
+            NearbyLivingArea = property.NearbyLivingArea,
+            NearbyLivingAreaUnit = property.NearbyLivingAreaUnit,
+            NearbyLotArea = property.NearbyLotArea,
+            NearbyLotAreaUnit = property.NearbyLotAreaUnit,
             Latitude = property.Latitude,
             Longitude = property.Longitude
         };

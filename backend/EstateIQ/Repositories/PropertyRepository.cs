@@ -85,6 +85,22 @@ public class PropertyRepository(AppDbContext dbContext) : IPropertyRepository
         existingProperty.AgentId = property.AgentId;
         existingProperty.Address = property.Address;
         existingProperty.City = property.City;
+        existingProperty.Zipcode = property.Zipcode;
+        existingProperty.LotArea = property.LotArea;
+        existingProperty.LotAreaUnit = property.LotAreaUnit;
+        existingProperty.Condition = property.Condition;
+        existingProperty.Grade = property.Grade;
+        existingProperty.HasBasement = property.HasBasement;
+        existingProperty.BasementArea = property.BasementArea;
+        existingProperty.BasementAreaUnit = property.BasementAreaUnit;
+        existingProperty.Waterfront = property.Waterfront;
+        existingProperty.ViewQuality = property.ViewQuality;
+        existingProperty.Renovated = property.Renovated;
+        existingProperty.YearRenovated = property.YearRenovated;
+        existingProperty.NearbyLivingArea = property.NearbyLivingArea;
+        existingProperty.NearbyLivingAreaUnit = property.NearbyLivingAreaUnit;
+        existingProperty.NearbyLotArea = property.NearbyLotArea;
+        existingProperty.NearbyLotAreaUnit = property.NearbyLotAreaUnit;
         existingProperty.Latitude = property.Latitude;
         existingProperty.Longitude = property.Longitude;
         existingProperty.UpdatedAt = DateTime.Now;
@@ -269,7 +285,8 @@ public class PropertyRepository(AppDbContext dbContext) : IPropertyRepository
         }
 
         var query = ApplyFilters(CreateDetailedQuery(), queryParameters)
-            .OrderBy(x => x.Id);
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id);
 
         var totalCount = await query.CountAsync();
         var items = await query
