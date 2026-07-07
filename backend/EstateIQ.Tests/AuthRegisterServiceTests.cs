@@ -34,6 +34,7 @@ public class AuthRegisterServiceTests
 
         var user = await dbContext.Users.SingleAsync();
         Assert.Equal("jon@example.com", user.Email);
+        Assert.Equal("+383 44 111 222", user.Phone);
         Assert.Equal("Jon", user.FirstName);
         Assert.Equal("Ukmata", user.LastName);
         Assert.False(user.IsEmailConfirmed);
@@ -143,6 +144,7 @@ public class AuthRegisterServiceTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = email,
+            Phone = "+383 44 111 222",
             Password = password,
             ConfirmPassword = confirmPassword
         };

@@ -28,6 +28,7 @@ public class AuthControllerTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = "Jon@Example.com",
+            Phone = "+383 44 111 222",
             Password = "Password123!",
             ConfirmPassword = "Password123!"
         });
@@ -67,6 +68,7 @@ public class AuthControllerTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = "jon@example.com",
+            Phone = "+383 44 111 222",
             Password = "Password123!",
             ConfirmPassword = "Password123!"
         });
@@ -105,6 +107,7 @@ public class AuthControllerTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = "jon@example.com",
+            Phone = "+383 44 111 222",
             Password = "Password123!",
             ConfirmPassword = "Password123!"
         });
@@ -132,6 +135,7 @@ public class AuthControllerTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = "jon@example.com",
+            Phone = "+383 44 111 222",
             Password = "Password123!",
             ConfirmPassword = "Password123!"
         });
@@ -252,6 +256,7 @@ public class AuthControllerTests
             FirstName = "Jon",
             LastName = "Ukmata",
             Email = "jon@example.com",
+            Phone = "+383 44 111 222",
             Password = "Password123!",
             ConfirmPassword = "Password123!"
         });
@@ -314,3 +319,4 @@ public class AuthControllerTests
         }
     }
 }
+

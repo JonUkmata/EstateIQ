@@ -344,9 +344,11 @@ public class UserService(
             errors[nameof(request.Password)] = passwordErrors;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Phone) && request.Phone.Trim().Length > 50)
+        AddRequiredStringError(errors, nameof(request.Phone), request.Phone ?? string.Empty, 50);
+
+        if (!string.IsNullOrWhiteSpace(request.Phone) && !IsValidPhone(request.Phone.Trim()))
         {
-            errors[nameof(request.Phone)] = ["Phone must be 50 characters or fewer."];
+            errors[nameof(request.Phone)] = ["Phone must include a country code and at least 5 digits."];
         }
 
         if (isAdmin && request.CompanyId <= 0)
@@ -434,6 +436,18 @@ public class UserService(
         {
             return false;
         }
+    }
+
+    private static bool IsValidPhone(string phone)
+    {
+        if (!phone.StartsWith('+'))
+        {
+            return false;
+        }
+
+        var digitCount = phone.Count(char.IsDigit);
+        return digitCount >= 5 && phone.All(character =>
+            char.IsDigit(character) || character is '+' or ' ' or '-' or '(' or ')');
     }
 
     private static string NormalizeEmail(string email)

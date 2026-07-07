@@ -41,6 +41,7 @@ public class AuthService(
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
             Email = normalizedEmail,
+            Phone = request.Phone.Trim(),
             IsEmailConfirmed = false,
             IsActive = true,
             CreatedAt = now
@@ -278,10 +279,16 @@ public class AuthService(
         AddRequiredStringError(errors, nameof(request.FirstName), request.FirstName, 100);
         AddRequiredStringError(errors, nameof(request.LastName), request.LastName, 100);
         AddRequiredStringError(errors, nameof(request.Email), request.Email, 255);
+        AddRequiredStringError(errors, nameof(request.Phone), request.Phone, 50);
 
         if (!string.IsNullOrWhiteSpace(request.Email) && !IsValidEmail(request.Email.Trim()))
         {
             errors[nameof(request.Email)] = ["Email must be a valid email address."];
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Phone) && !IsValidPhone(request.Phone.Trim()))
+        {
+            errors[nameof(request.Phone)] = ["Phone must include a country code and at least 5 digits."];
         }
 
         var passwordErrors = GetPasswordErrors(request.Password).ToArray();
@@ -433,6 +440,18 @@ public class AuthService(
         {
             return false;
         }
+    }
+
+    private static bool IsValidPhone(string phone)
+    {
+        if (!phone.StartsWith('+'))
+        {
+            return false;
+        }
+
+        var digitCount = phone.Count(char.IsDigit);
+        return digitCount >= 5 && phone.All(character =>
+            char.IsDigit(character) || character is '+' or ' ' or '-' or '(' or ')');
     }
 
     private static string NormalizeEmail(string email)

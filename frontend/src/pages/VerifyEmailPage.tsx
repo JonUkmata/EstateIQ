@@ -73,6 +73,39 @@ export default function VerifyEmailPage() {
   const isFailed = status === 'failed'
   const showManualTokenForm = showFallbackForm
 
+  if (isVerified) {
+    return (
+      <main className="login-shell auth-flow-shell register-success-shell">
+        <section className="login-card register-success-panel">
+          <div className="auth-success register-success-card">
+            <span className="eyebrow">Email verified</span>
+            <strong>Email verified successfully.</strong>
+            <p>You can now login to your EstateIQ account.</p>
+            <NavLink className="cta-link cta-link-secondary" to="/login">
+              Login
+            </NavLink>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (isVerifying && hasQueryToken) {
+    return (
+      <main className="login-shell auth-flow-shell register-success-shell">
+        <section className="login-card register-success-panel">
+          <div className="verify-status-card register-success-card">
+            <span className="loading-spinner" aria-hidden="true">
+              <span className="loading-spinner-dot" />
+            </span>
+            <strong>Verifying email...</strong>
+            <p>Please wait a moment.</p>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main className="login-shell auth-flow-shell verify-flow-shell">
       <section className="login-card auth-flow-panel verify-flow-panel">
@@ -113,16 +146,6 @@ export default function VerifyEmailPage() {
               </span>
               <strong>Verifying email...</strong>
               <p>This usually takes a moment.</p>
-            </div>
-          ) : null}
-
-          {isVerified ? (
-            <div className="auth-success demo-token-card field-wide">
-              <strong>{successMessage}</strong>
-              <p>Your email has been confirmed. You can now sign in.</p>
-              <NavLink className="table-action-link" to="/login">
-                Continue to login
-              </NavLink>
             </div>
           ) : null}
 

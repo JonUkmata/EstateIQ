@@ -348,6 +348,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasMaxLength(255)
                 .IsRequired();
 
+            entity.Property(x => x.Phone).HasMaxLength(50);
+
             entity.Property(x => x.PasswordHash)
                 .IsRequired();
 

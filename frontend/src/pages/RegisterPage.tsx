@@ -3,19 +3,29 @@ import type { FormEvent } from 'react'
 import { NavLink } from 'react-router-dom'
 import { registerUser } from '../services/api'
 import type { RegisterRequest, RegisterResponse } from '../types/auth'
+import { buildPhoneNumber, isValidLocalPhoneNumber, phoneCountries } from '../utils/phone'
 
-type RegisterFormErrors = Partial<Record<keyof RegisterRequest, string>>
+type RegisterFormState = Omit<RegisterRequest, 'phone'> & {
+  phoneCountryCode: string
+  phoneNumber: string
+}
 
-const initialForm: RegisterRequest = {
+type RegisterFormField = keyof RegisterFormState
+type RegisterFormErrorKey = keyof RegisterFormState
+type RegisterFormStateErrors = Partial<Record<RegisterFormErrorKey, string>>
+
+const initialForm: RegisterFormState = {
   firstName: '',
   lastName: '',
   email: '',
+  phoneCountryCode: '+383',
+  phoneNumber: '',
   password: '',
   confirmPassword: '',
 }
 
-function validateForm(form: RegisterRequest) {
-  const errors: RegisterFormErrors = {}
+function validateForm(form: RegisterFormState) {
+  const errors: RegisterFormStateErrors = {}
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   if (!form.firstName.trim()) {
@@ -30,6 +40,12 @@ function validateForm(form: RegisterRequest) {
     errors.email = 'Email is required.'
   } else if (!emailPattern.test(form.email.trim())) {
     errors.email = 'Enter a valid email address.'
+  }
+
+  if (!form.phoneNumber.trim()) {
+    errors.phoneNumber = 'Phone number is required.'
+  } else if (!isValidLocalPhoneNumber(form.phoneNumber)) {
+    errors.phoneNumber = 'Enter a valid phone number.'
   }
 
   if (!form.password) {
@@ -48,8 +64,8 @@ function validateForm(form: RegisterRequest) {
 }
 
 export default function RegisterPage() {
-  const [form, setForm] = useState<RegisterRequest>(initialForm)
-  const [errors, setErrors] = useState<RegisterFormErrors>({})
+  const [form, setForm] = useState<RegisterFormState>(initialForm)
+  const [errors, setErrors] = useState<RegisterFormStateErrors>({})
   const [submitError, setSubmitError] = useState('')
   const [success, setSuccess] = useState<RegisterResponse | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -62,7 +78,7 @@ export default function RegisterPage() {
     return `/verify-email?token=${encodeURIComponent(success.verificationToken)}`
   }, [success])
 
-  function updateField(field: keyof RegisterRequest, value: string) {
+  function updateField(field: RegisterFormField, value: string) {
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -89,6 +105,7 @@ export default function RegisterPage() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
+        phone: buildPhoneNumber(form.phoneCountryCode, form.phoneNumber),
         password: form.password,
         confirmPassword: form.confirmPassword,
       })
@@ -102,6 +119,38 @@ export default function RegisterPage() {
     }
   }
 
+  if (success) {
+    return (
+      <main className="login-shell auth-flow-shell register-success-shell">
+        <section className="login-card register-success-panel">
+          <div className="auth-success register-success-card">
+            <span className="eyebrow">Registration complete</span>
+            <strong>{success.message || 'Registration successful.'}</strong>
+            {success.verificationEmailSent ? (
+              <p>Open the verification link from your inbox to activate the account.</p>
+            ) : (
+              <>
+                <p>
+                  SMTP is not configured locally, so use this fallback token to verify the account.
+                </p>
+                <span>Verification token</span>
+                <code>{success.verificationToken}</code>
+                {verifyLink ? (
+                  <NavLink className="table-action-link" to={verifyLink}>
+                    Continue to email verification
+                  </NavLink>
+                ) : null}
+              </>
+            )}
+            <NavLink className="cta-link cta-link-secondary" to="/">
+              Back to start
+            </NavLink>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
   return (
     <main className="login-shell auth-flow-shell">
       <section className="login-card auth-flow-panel">
@@ -109,7 +158,7 @@ export default function RegisterPage() {
           <span className="eyebrow">Register</span>
           <h1>Create your EstateIQ account.</h1>
           <p className="lead">
-            Register as a buyer or renter. After registration, confirm your account from the
+            Register as a buyer. After registration, confirm your account from the
             verification email before logging in.
           </p>
 
@@ -166,6 +215,32 @@ export default function RegisterPage() {
               {errors.email ? <small>{errors.email}</small> : null}
             </label>
 
+            <div className="field field-wide">
+              <span>Phone</span>
+              <div className="phone-input-row">
+                <select
+                  aria-label="Phone country code"
+                  value={form.phoneCountryCode}
+                  onChange={(event) => updateField('phoneCountryCode', event.target.value)}
+                >
+                  {phoneCountries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-invalid={Boolean(errors.phoneNumber)}
+                  autoComplete="tel-national"
+                  inputMode="tel"
+                  placeholder="44 123 456"
+                  value={form.phoneNumber}
+                  onChange={(event) => updateField('phoneNumber', event.target.value)}
+                />
+              </div>
+              {errors.phoneNumber ? <small>{errors.phoneNumber}</small> : null}
+            </div>
+
             <label className="field">
               <span>Password</span>
               <input
@@ -196,29 +271,6 @@ export default function RegisterPage() {
               <p className="form-message form-message-error login-error-message field-wide">
                 {submitError}
               </p>
-            ) : null}
-
-            {success ? (
-              <div className="auth-success demo-token-card field-wide">
-                <strong>{success.message || 'Registration successful.'}</strong>
-                {success.verificationEmailSent ? (
-                  <p>Open the verification link from your inbox, then return to login.</p>
-                ) : (
-                  <>
-                    <p>
-                      SMTP is not configured locally, so use this fallback token to verify the
-                      account.
-                    </p>
-                    <span>Verification token</span>
-                    <code>{success.verificationToken}</code>
-                    {verifyLink ? (
-                      <NavLink className="table-action-link" to={verifyLink}>
-                        Continue to email verification
-                      </NavLink>
-                    ) : null}
-                  </>
-                )}
-              </div>
             ) : null}
 
             <div className="form-actions auth-actions">

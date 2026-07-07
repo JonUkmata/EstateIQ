@@ -258,7 +258,7 @@ export type CreateAgentPayload = {
   lastName: string
   email: string
   password: string
-  phone?: string | null
+  phone: string
 }
 
 export type CreateCompanyAdminPayload = {

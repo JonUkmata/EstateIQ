@@ -97,6 +97,7 @@ public class DashboardCacheInvalidationTests
                 LastName = "Agent",
                 Email = "newagent@example.com",
                 Password = "Test@123",
+                Phone = "+383 44 111 222",
                 CompanyId = 1
             },
             currentUserId: Guid.NewGuid(),

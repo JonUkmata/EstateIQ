@@ -3,17 +3,23 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import LoadingState from '../components/LoadingState'
 import { createAgent, getMyCompanyAgents, type Agent, type CreateAgentPayload } from '../services/api'
+import { buildPhoneNumber, isValidLocalPhoneNumber, phoneCountries } from '../utils/phone'
 
 type LoadState = 'loading' | 'success' | 'error'
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
-type FormErrors = Partial<Record<keyof CreateAgentPayload, string>>
+type AgentFormState = Omit<CreateAgentPayload, 'phone'> & {
+  phoneCountryCode: string
+  phoneNumber: string
+}
+type FormErrors = Partial<Record<keyof AgentFormState, string>>
 
-const initialForm: CreateAgentPayload = {
+const initialForm: AgentFormState = {
   firstName: '',
   lastName: '',
   email: '',
   password: '',
-  phone: '',
+  phoneCountryCode: '+383',
+  phoneNumber: '',
 }
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -28,7 +34,7 @@ export default function CompanyAgentsPage() {
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
-  const [form, setForm] = useState<CreateAgentPayload>(initialForm)
+  const [form, setForm] = useState<AgentFormState>(initialForm)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
 
   async function loadAgents(signal?: AbortSignal) {
@@ -66,7 +72,7 @@ export default function CompanyAgentsPage() {
     return `${agents.length} ${agents.length === 1 ? 'agent' : 'agents'}`
   }, [agents.length, loadState])
 
-  function updateFormField(field: keyof CreateAgentPayload, value: string) {
+  function updateFormField(field: keyof AgentFormState, value: string) {
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -96,7 +102,7 @@ export default function CompanyAgentsPage() {
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         password: form.password,
-        phone: form.phone?.trim() || null,
+        phone: buildPhoneNumber(form.phoneCountryCode, form.phoneNumber),
       })
       setForm(initialForm)
       setFormErrors({})
@@ -182,15 +188,31 @@ export default function CompanyAgentsPage() {
             {formErrors.password ? <small>{formErrors.password}</small> : null}
           </label>
 
-          <label className="field field-wide">
+          <div className="field field-wide">
             <span>Phone</span>
-            <input
-              value={form.phone ?? ''}
-              onChange={(event) => updateFormField('phone', event.target.value)}
-              autoComplete="tel"
-            />
-            {formErrors.phone ? <small>{formErrors.phone}</small> : null}
-          </label>
+            <div className="phone-input-row">
+              <select
+                aria-label="Phone country code"
+                value={form.phoneCountryCode}
+                onChange={(event) => updateFormField('phoneCountryCode', event.target.value)}
+              >
+                {phoneCountries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-invalid={Boolean(formErrors.phoneNumber)}
+                value={form.phoneNumber}
+                onChange={(event) => updateFormField('phoneNumber', event.target.value)}
+                autoComplete="tel-national"
+                inputMode="tel"
+                placeholder="44 123 456"
+              />
+            </div>
+            {formErrors.phoneNumber ? <small>{formErrors.phoneNumber}</small> : null}
+          </div>
 
           <div className="form-actions">
             <button type="submit" disabled={submitState === 'submitting'}>
@@ -215,6 +237,7 @@ export default function CompanyAgentsPage() {
                   <th>First name</th>
                   <th>Last name</th>
                   <th>Email</th>
+                  <th>Phone</th>
                   <th>Status</th>
                   <th>Created</th>
                 </tr>
@@ -225,6 +248,7 @@ export default function CompanyAgentsPage() {
                     <td data-label="First name">{agent.firstName}</td>
                     <td data-label="Last name">{agent.lastName}</td>
                     <td data-label="Email">{agent.email}</td>
+                    <td data-label="Phone">{agent.phone || '-'}</td>
                     <td data-label="Status">
                       <span className="status-pill">{agent.isActive ? 'Active' : 'Inactive'}</span>
                     </td>
@@ -253,7 +277,7 @@ function formatCreatedAt(createdAt?: string) {
   return dateFormatter.format(parsed)
 }
 
-function validateForm(form: CreateAgentPayload) {
+function validateForm(form: AgentFormState) {
   const errors: FormErrors = {}
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -277,8 +301,10 @@ function validateForm(form: CreateAgentPayload) {
     errors.password = 'Temporary password must be at least 8 characters.'
   }
 
-  if (form.phone && form.phone.trim().length > 50) {
-    errors.phone = 'Phone must be 50 characters or fewer.'
+  if (!form.phoneNumber.trim()) {
+    errors.phoneNumber = 'Phone number is required.'
+  } else if (!isValidLocalPhoneNumber(form.phoneNumber)) {
+    errors.phoneNumber = 'Enter a valid phone number.'
   }
 
   return errors

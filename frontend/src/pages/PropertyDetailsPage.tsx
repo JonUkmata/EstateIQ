@@ -123,6 +123,9 @@ export default function PropertyDetailsPage() {
     )
   }
 
+  const agentPhone = property.agent.phone || property.agent.mobile || ''
+  const agentPhoneHref = agentPhone ? `tel:${agentPhone.replace(/[^\d+]/g, '')}` : ''
+
   return (
     <section className="content-stack">
       <div className="section-heading">
@@ -175,7 +178,24 @@ export default function PropertyDetailsPage() {
           <dl>
             <div><dt>Company</dt><dd>{property.company.name}</dd></div>
             <div><dt>Agent</dt><dd>{property.agent.firstName} {property.agent.lastName}</dd></div>
+            <div><dt>Phone</dt><dd>{agentPhone || '-'}</dd></div>
           </dl>
+        </article>
+
+        <article className="details-card contact-agent-card">
+          <h2>Contact Agent</h2>
+          {agentPhone ? (
+            <>
+              <p>
+                Contact the agent at this number for more information or to reserve a tour.
+              </p>
+              <a className="table-action-link" href={agentPhoneHref}>
+                {agentPhone}
+              </a>
+            </>
+          ) : (
+            <p>Agent phone number is not available for this property.</p>
+          )}
         </article>
       </section>
 

@@ -846,6 +846,19 @@ a {
   min-width: 0;
 }
 
+.phone-input-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.38fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.phone-input-row select,
+.phone-input-row input {
+  width: 100%;
+  min-width: 0;
+}
+
 .image-upload-placeholder {
   display: flex;
   align-items: center;
@@ -1429,6 +1442,21 @@ a {
   margin: 0;
   color: #203f31;
   text-align: right;
+}
+
+.contact-agent-card {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+}
+
+.contact-agent-card p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.contact-agent-card .table-action-link {
+  width: fit-content;
 }
 
 .property-images-panel {
@@ -2057,6 +2085,35 @@ a {
   overflow: auto;
 }
 
+.register-success-shell {
+  width: min(620px, calc(100% - 2rem));
+}
+
+.register-success-panel {
+  display: block;
+  padding: clamp(1.4rem, 4vw, 2rem);
+}
+
+.register-success-card {
+  padding: clamp(1.2rem, 4vw, 1.6rem);
+  border-radius: 16px;
+}
+
+.register-success-card .eyebrow {
+  margin: 0;
+  color: #2f6845;
+}
+
+.register-success-card strong {
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  line-height: 1.18;
+}
+
+.register-success-card .cta-link {
+  width: fit-content;
+  margin-top: 0.25rem;
+}
+
 .auth-shell {
   width: min(920px, calc(100% - 2rem));
 }
@@ -2314,6 +2371,10 @@ a {
   }
 
   .property-form {
+    grid-template-columns: 1fr;
+  }
+
+  .phone-input-row {
     grid-template-columns: 1fr;
   }
 
