@@ -10,12 +10,14 @@ public class AuthService(
     IAuthRepository authRepository,
     IPasswordService passwordService,
     ITokenService tokenService,
+    IEmailSender emailSender,
     ILogger<AuthService> logger) : IAuthService
 {
     private const string PublicUserRoleName = "User";
     private readonly IAuthRepository _authRepository = authRepository;
     private readonly IPasswordService _passwordService = passwordService;
     private readonly ITokenService _tokenService = tokenService;
+    private readonly IEmailSender _emailSender = emailSender;
     private readonly ILogger<AuthService> _logger = logger;
 
     public async Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -66,16 +68,31 @@ public class AuthService(
 
         await _authRepository.AddRegistrationAsync(user, userRoleAssignment, emailVerificationToken);
 
-        _logger.LogInformation(
-            "Registered public user {UserId} with email {Email}. Development verification token: {VerificationToken}",
-            user.Id,
+        var verificationEmailSent = await _emailSender.SendEmailVerificationAsync(
             user.Email,
+            $"{user.FirstName} {user.LastName}",
             verificationToken);
+
+        if (verificationEmailSent)
+        {
+            _logger.LogInformation("Registered public user {UserId} with email {Email} and sent verification email.", user.Id, user.Email);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Registered public user {UserId} with email {Email}. Development verification token: {VerificationToken}",
+                user.Id,
+                user.Email,
+                verificationToken);
+        }
 
         return new RegisterResponseDto
         {
-            Message = "Registration successful. Please verify your email before logging in.",
-            VerificationToken = verificationToken
+            Message = verificationEmailSent
+                ? "Registration successful. Please check your email to verify your account before logging in."
+                : "Registration successful. Please verify your email before logging in.",
+            VerificationEmailSent = verificationEmailSent,
+            VerificationToken = verificationEmailSent ? null : verificationToken
         };
     }
 

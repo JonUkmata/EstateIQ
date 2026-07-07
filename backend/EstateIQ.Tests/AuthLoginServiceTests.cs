@@ -102,6 +102,7 @@ public class AuthLoginServiceTests
             new AuthRepository(dbContext),
             new PasswordService(),
             tokenService ?? CreateTokenService(),
+            new FakeEmailSender(),
             NullLogger<AuthService>.Instance);
     }
 

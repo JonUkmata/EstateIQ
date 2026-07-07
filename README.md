@@ -251,16 +251,31 @@ Expected frontend URL:
 | GET | `/api/propertytypes` | Public | List property types |
 | GET | `/api/propertystatuses` | Public | List property statuses |
 
-## Demo Auth Flow
+## Email Verification Flow
 
-This project uses a simulated email verification flow because no real SMTP is configured. Use these steps to create and verify an account locally:
+Registration creates an email verification token and, when SMTP is configured, sends a real verification email with a `/verify-email?token=...` link. Without SMTP settings, local development falls back to showing the token on the Register page.
 
 1. Open `http://localhost:5173/register`.
 2. Fill in the registration form and submit.
-3. A demo verification token is shown on screen. Copy it, or click the prefilled verification link.
-4. The verify page (`/verify-email`) accepts the token from the link or from manual paste.
+3. If SMTP is configured, open the verification email and click the link.
+4. If SMTP is not configured, copy the fallback token shown on screen or click the prefilled verification link.
 5. After verification, go to `/login` and sign in.
 6. You land on `/dashboard` (Admin, CompanyAdmin, Agent) or `/properties` (User) based on your role.
+
+Configure SMTP in `backend/EstateIQ/.env`:
+
+```env
+Smtp__Host="smtp.gmail.com"
+Smtp__Port="587"
+Smtp__Username="your-email@gmail.com"
+Smtp__Password="your-app-password"
+Smtp__FromEmail="your-email@gmail.com"
+Smtp__FromName="EstateIQ"
+Smtp__EnableSsl="true"
+Smtp__FrontendBaseUrl="http://localhost:5173"
+```
+
+For Gmail, use an App Password instead of your normal account password.
 
 Seed data creates initial roles and permissions automatically. To get an Admin account, use the seeded admin user credentials configured in `Program.cs` or create one directly in the database.
 

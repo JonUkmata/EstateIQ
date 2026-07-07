@@ -38,6 +38,7 @@ public class AuthControllerTests
         Assert.NotNull(result);
         Assert.Equal("Registration successful. Please verify your email before logging in.", result!.Message);
         Assert.False(string.IsNullOrWhiteSpace(result.VerificationToken));
+        Assert.False(result.VerificationEmailSent);
 
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();

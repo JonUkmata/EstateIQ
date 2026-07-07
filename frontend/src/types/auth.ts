@@ -8,7 +8,8 @@ export type RegisterRequest = {
 
 export type RegisterResponse = {
   message: string
-  verificationToken: string
+  verificationEmailSent: boolean
+  verificationToken?: string | null
 }
 
 export type VerifyEmailRequest = {

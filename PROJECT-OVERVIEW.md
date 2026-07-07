@@ -204,7 +204,7 @@ VITE_API_BASE_URL=""
 
 - Auth landing page at `/` with redirect logic by role
 - Login page at `/login` with role-based redirect after login
-- Registration page at `/register` with simulated email verification demo flow
+- Registration page at `/register` with real SMTP email verification when configured and a local token fallback otherwise
 - Verify email page at `/verify-email` (query string token or manual paste)
 - Marketplace card grid at `/properties` with search, city, type, status, and price filters
 - Property details page at `/properties/:id` with image gallery and upload UI
@@ -224,7 +224,7 @@ VITE_API_BASE_URL=""
 
 ### Planned Features
 
-- Real SMTP email delivery for registration and account recovery
+- Forgot password and reset password flow with email delivery
 - Forgot password and reset password flow
 - Cloud file storage for property images
 - Image ordering and cover image selection

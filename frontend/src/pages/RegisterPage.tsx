@@ -109,15 +109,14 @@ export default function RegisterPage() {
           <span className="eyebrow">Register</span>
           <h1>Create your EstateIQ account.</h1>
           <p className="lead">
-            Register as a buyer or renter. For this demo, verification uses a simulated token shown
-            after registration instead of a real email.
+            Register as a buyer or renter. After registration, confirm your account from the
+            verification email before logging in.
           </p>
 
           <div className="auth-flow-note">
-            <span className="panel-label">Demo verification</span>
+            <span className="panel-label">Email verification</span>
             <p>
-              After submitting the form, copy the generated token or continue with the prefilled
-              verification link.
+              Use an email inbox you can access. The verification link expires after 24 hours.
             </p>
           </div>
         </div>
@@ -202,17 +201,23 @@ export default function RegisterPage() {
             {success ? (
               <div className="auth-success demo-token-card field-wide">
                 <strong>{success.message || 'Registration successful.'}</strong>
-                <p>
-                  This project does not send a real email. Use this simulated demo token to verify
-                  the account.
-                </p>
-                <span>Demo verification token</span>
-                <code>{success.verificationToken}</code>
-                {verifyLink ? (
-                  <NavLink className="table-action-link" to={verifyLink}>
-                    Continue to email verification
-                  </NavLink>
-                ) : null}
+                {success.verificationEmailSent ? (
+                  <p>Open the verification link from your inbox, then return to login.</p>
+                ) : (
+                  <>
+                    <p>
+                      SMTP is not configured locally, so use this fallback token to verify the
+                      account.
+                    </p>
+                    <span>Verification token</span>
+                    <code>{success.verificationToken}</code>
+                    {verifyLink ? (
+                      <NavLink className="table-action-link" to={verifyLink}>
+                        Continue to email verification
+                      </NavLink>
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : null}
 

@@ -2130,6 +2130,47 @@ a {
   width: fit-content;
 }
 
+.verify-status-card {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid rgba(24, 53, 41, 0.12);
+  border-radius: 14px;
+  background: rgba(245, 249, 243, 0.9);
+  color: #274638;
+}
+
+.verify-status-card strong {
+  color: #163126;
+}
+
+.verify-status-card p {
+  margin: 0;
+  color: #486558;
+  line-height: 1.5;
+}
+
+.verify-status-card button {
+  min-height: 42px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 12px;
+  background: #163126;
+  color: #fffefa;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.verify-status-card-error {
+  border-color: rgba(143, 45, 45, 0.2);
+  background: rgba(255, 242, 238, 0.9);
+}
+
+.verify-status-card-error p {
+  color: #8f2d2d;
+}
+
 .company-contact-box {
   padding: 1rem;
   border: 1px solid rgba(24, 53, 41, 0.12);

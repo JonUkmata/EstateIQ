@@ -40,6 +40,7 @@ public class AuthRegisterServiceTests
         Assert.True(user.IsActive);
         Assert.Equal("Registration successful. Please verify your email before logging in.", response.Message);
         Assert.False(string.IsNullOrWhiteSpace(response.VerificationToken));
+        Assert.False(response.VerificationEmailSent);
     }
 
     [Fact]
@@ -119,6 +120,7 @@ public class AuthRegisterServiceTests
             new AuthRepository(dbContext),
             passwordService ?? new PasswordService(),
             new TokenService(Options.Create(TestJwtSettings)),
+            new FakeEmailSender(),
             NullLogger<AuthService>.Instance);
     }
 

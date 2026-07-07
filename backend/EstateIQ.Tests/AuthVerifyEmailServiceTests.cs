@@ -98,6 +98,7 @@ public class AuthVerifyEmailServiceTests
             new AuthRepository(dbContext),
             new PasswordService(),
             new TokenService(Options.Create(TestJwtSettings)),
+            new FakeEmailSender(),
             NullLogger<AuthService>.Instance);
     }
 

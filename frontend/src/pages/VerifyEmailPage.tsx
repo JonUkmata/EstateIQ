@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { NavLink, useSearchParams } from 'react-router-dom'
 import { verifyEmail } from '../services/api'
+
+type VerificationStatus = 'idle' | 'verifying' | 'verified' | 'failed'
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
@@ -9,16 +11,39 @@ export default function VerifyEmailPage() {
   const [tokenError, setTokenError] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [status, setStatus] = useState<VerificationStatus>('idle')
+  const [showFallbackForm, setShowFallbackForm] = useState(false)
+  const autoVerifiedTokenRef = useRef('')
 
-  const hasQueryToken = useMemo(() => Boolean(searchParams.get('token')), [searchParams])
+  const queryToken = searchParams.get('token')?.trim() ?? ''
+  const hasQueryToken = Boolean(queryToken)
 
   useEffect(() => {
-    const queryToken = searchParams.get('token')
-    if (queryToken) {
-      setToken(queryToken)
+    if (!queryToken || autoVerifiedTokenRef.current === queryToken) {
+      return
     }
-  }, [searchParams])
+
+    autoVerifiedTokenRef.current = queryToken
+    setToken(queryToken)
+    setTokenError('')
+    setSubmitError('')
+    setSuccessMessage('')
+    setShowFallbackForm(false)
+
+    async function verifyQueryToken() {
+      setStatus('verifying')
+      try {
+        const response = await verifyEmail({ token: queryToken })
+        setSuccessMessage(response.message || 'Email verified successfully. You can now login.')
+        setStatus('verified')
+      } catch (error) {
+        setSubmitError(error instanceof Error ? error.message : 'Email verification failed. Please try again.')
+        setStatus('failed')
+      }
+    }
+
+    void verifyQueryToken()
+  }, [queryToken])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -32,34 +57,39 @@ export default function VerifyEmailPage() {
       return
     }
 
-    setIsSubmitting(true)
+    setStatus('verifying')
     try {
       const response = await verifyEmail({ token: trimmedToken })
       setSuccessMessage(response.message || 'Email verified successfully. You can now login.')
+      setStatus('verified')
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Email verification failed. Please try again.')
-    } finally {
-      setIsSubmitting(false)
+      setStatus('failed')
     }
   }
+
+  const isVerifying = status === 'verifying'
+  const isVerified = status === 'verified'
+  const isFailed = status === 'failed'
+  const showManualTokenForm = showFallbackForm
 
   return (
     <main className="login-shell auth-flow-shell verify-flow-shell">
       <section className="login-card auth-flow-panel verify-flow-panel">
         <div className="auth-flow-copy">
           <span className="eyebrow">Verify email</span>
-          <h1>Confirm the demo verification token.</h1>
+          <h1>Confirm your email address.</h1>
           <p className="lead">
-            Verification accepts the token from the registration link or a token pasted manually
-            from the demo registration result.
+            Open the verification link from your inbox and EstateIQ will activate the account
+            automatically.
           </p>
 
           <div className="auth-flow-note">
-            <span className="panel-label">Token source</span>
+            <span className="panel-label">Secure verification</span>
             <p>
               {hasQueryToken
-                ? 'A token was detected in the URL and has been placed in the form.'
-                : 'Paste the simulated verification token from the Register page to continue.'}
+                ? 'The verification link is being checked. You can sign in after it is confirmed.'
+                : 'This page expects a verification link from your email. Local development can still use the fallback token.'}
             </p>
           </div>
         </div>
@@ -67,59 +97,110 @@ export default function VerifyEmailPage() {
         <div className="auth-form-card">
           <div className="login-form-heading">
             <h2>Email verification</h2>
-            <p>This demo verifies accounts with a generated token. No real email is sent.</p>
+            <p>
+              {isVerified
+                ? 'Your account is active.'
+                : hasQueryToken
+                  ? 'Please wait while we confirm your email.'
+                  : 'Use the link from your email to complete registration.'}
+            </p>
           </div>
 
-          <form className="property-form auth-form verify-form" onSubmit={handleSubmit} noValidate>
-            <label className="field field-wide">
-              <span>Verification token</span>
-              <textarea
-                aria-invalid={Boolean(tokenError)}
-                placeholder="Paste the simulated verification token"
-                rows={5}
-                value={token}
-                onChange={(event) => {
-                  setToken(event.target.value)
-                  setTokenError('')
-                }}
-              />
-              {tokenError ? <small>{tokenError}</small> : null}
-            </label>
+          {isVerifying ? (
+            <div className="verify-status-card">
+              <span className="loading-spinner" aria-hidden="true">
+                <span className="loading-spinner-dot" />
+              </span>
+              <strong>Verifying email...</strong>
+              <p>This usually takes a moment.</p>
+            </div>
+          ) : null}
 
-            {submitError ? (
-              <p className="form-message form-message-error login-error-message field-wide">
-                {submitError}
-              </p>
-            ) : null}
+          {isVerified ? (
+            <div className="auth-success demo-token-card field-wide">
+              <strong>{successMessage}</strong>
+              <p>Your email has been confirmed. You can now sign in.</p>
+              <NavLink className="table-action-link" to="/login">
+                Continue to login
+              </NavLink>
+            </div>
+          ) : null}
 
-            {successMessage ? (
-              <div className="auth-success demo-token-card field-wide">
+          {isFailed ? (
+            <div className="verify-status-card verify-status-card-error">
+              <strong>Email verification failed</strong>
+              <p>{submitError}</p>
+              {hasQueryToken ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    autoVerifiedTokenRef.current = ''
+                    setSubmitError('')
+                    setStatus('idle')
+                    setToken(queryToken)
+                    setShowFallbackForm(true)
+                  }}
+                >
+                  Try manually
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {showManualTokenForm ? (
+            <form className="property-form auth-form verify-form" onSubmit={handleSubmit} noValidate>
+              <label className="field field-wide">
+                <span>Verification token</span>
+                <textarea
+                  aria-invalid={Boolean(tokenError)}
+                  placeholder="Paste the verification token"
+                  rows={5}
+                  value={token}
+                  onChange={(event) => {
+                    setToken(event.target.value)
+                    setTokenError('')
+                  }}
+                />
+                {tokenError ? <small>{tokenError}</small> : null}
+              </label>
+
+              {submitError && !isFailed ? (
+                <p className="form-message form-message-error login-error-message field-wide">
+                  {submitError}
+                </p>
+              ) : null}
+
+              {successMessage && !isVerified ? (
+                <div className="auth-success demo-token-card field-wide">
                 <strong>{successMessage}</strong>
-                <p>The account is verified for this demo flow. You can now sign in.</p>
+                <p>Your email has been confirmed. You can now sign in.</p>
                 <NavLink className="table-action-link" to="/login">
                   Continue to login
                 </NavLink>
               </div>
-            ) : null}
+              ) : null}
 
+              <div className="form-actions auth-actions">
+                <NavLink className="cta-link cta-link-secondary" to="/register">
+                  Register
+                </NavLink>
+                <button type="submit" disabled={isVerifying}>
+                  {isVerifying ? 'Verifying...' : 'Verify email'}
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          {!hasQueryToken && !showManualTokenForm && !isVerified ? (
             <div className="form-actions auth-actions">
               <NavLink className="cta-link cta-link-secondary" to="/register">
                 Register
               </NavLink>
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <span className="state-with-spinner">
-                    <span className="loading-spinner" aria-hidden="true">
-                      <span className="loading-spinner-dot" />
-                    </span>
-                    <span>Verifying...</span>
-                  </span>
-                ) : (
-                  'Verify email'
-                )}
+              <button type="button" onClick={() => setShowFallbackForm(true)}>
+                Enter fallback token
               </button>
             </div>
-          </form>
+          ) : null}
         </div>
       </section>
     </main>

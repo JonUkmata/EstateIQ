@@ -105,6 +105,7 @@ public class AuthRefreshServiceTests
             new AuthRepository(dbContext),
             new PasswordService(),
             tokenService,
+            new FakeEmailSender(),
             NullLogger<AuthService>.Instance);
     }
 
